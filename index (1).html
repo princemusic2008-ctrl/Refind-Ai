@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ReFind AI — Intelligent Lost & Found & Recovery Network</title>
+<meta name="description" content="AI-assisted lost and found platform prototype" />
+<style>
+  :root{
+    --primary:#6D5EF5; --primary-dark:#5144D8; --primary-light:#F0EEFF; --accent:#14B8A6; --accent-soft:#E7FBF7; --bg:#F7F8FC; --card:#FFFFFF; --border:#E6E8F0;
+    --text:#0F172A; --text-secondary:#64748B; --text-muted:#94A3B8;
+    --success:#16A34A; --success-bg:#DCFCE7;
+    --danger:#DC2626; --danger-bg:#FEE2E2;
+    --warning:#D97706; --warning-bg:#FEF3C7;
+    --radius:16px; --radius-sm:10px;
+    --shadow:0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+    --shadow-md:0 4px 14px rgba(15,23,42,.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;background:radial-gradient(circle at 15% 0%,#F0EEFF 0,transparent 28%),radial-gradient(circle at 85% 8%,#E8FBF8 0,transparent 24%),var(--bg);color:var(--text);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-0.02em;}
+  p{margin:0;}
+  a{color:inherit;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;}
+  input,textarea,select{font-family:inherit;font-size:15px;}
+  img{max-width:100%;display:block;}
+  .container{max-width:1120px;margin:0 auto;padding:0 24px;}
+  .page{display:none;}
+  .page.active{display:block;animation:fadein .25s ease;}
+  @keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  /* ===== NAVBAR ===== */
+  nav.navbar{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);}
+  .nav-inner{max-width:1120px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+  .logo{font-size:18px;font-weight:800;display:flex;align-items:center;gap:9px;letter-spacing:-.03em;}
+  .brand-mark{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--primary),#9B8CFF);box-shadow:0 8px 22px rgba(109,94,245,.28);position:relative;overflow:hidden;}
+  .brand-mark:before{content:"";width:13px;height:13px;border:2px solid #fff;border-radius:50%;position:absolute;top:7px;left:7px;animation:scan 2.2s ease-in-out infinite;}
+  .brand-mark:after{content:"";width:8px;height:2px;border-radius:99px;background:#fff;position:absolute;transform:rotate(45deg);left:19px;top:22px;animation:scanHandle 2.2s ease-in-out infinite;}
+  @keyframes scan{0%,100%{transform:translate(0,0) scale(1);opacity:.9}50%{transform:translate(3px,-2px) scale(1.08);opacity:1}}
+  @keyframes scanHandle{0%,100%{transform:translate(0,0) rotate(45deg)}50%{transform:translate(3px,-2px) rotate(45deg)}}
+  .hero-glow{position:absolute;inset:-120px 0 auto;height:360px;pointer-events:none;background:radial-gradient(circle at 50% 45%,rgba(109,94,245,.14),transparent 62%);z-index:-1;}
+  .hero-wrap{position:relative;}
+  .location-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;}
+  .location-hint{font-size:12px;color:var(--text-muted);margin-top:5px;}
+  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 28px;}
+  .my-status-card{background:linear-gradient(135deg,#fff 0%,#f8f7ff 55%,#f0fffc 100%);border:1px solid var(--border);border-radius:18px;padding:22px;margin:0 0 20px;box-shadow:var(--shadow-md);}
+  .my-status-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;}
+  .my-status-kicker{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--primary);text-transform:uppercase;}
+  .my-status-title{font-size:21px;font-weight:800;margin-top:3px;}
+  .my-status-meta{font-size:13px;color:var(--text-secondary);margin-top:4px;}
+  .status-current{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;background:var(--warning-bg);color:var(--warning);}
+  .status-current.success{background:var(--success-bg);color:var(--success);}
+  .status-current.primary{background:var(--primary-light);color:var(--primary);}
+  .status-timeline{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin-top:20px;}
+  .status-node{position:relative;text-align:center;font-size:10px;color:var(--text-muted);font-weight:700;}
+  .status-node:before{content:'';display:block;height:5px;border-radius:99px;background:#E8EAF1;margin-bottom:8px;}
+  .status-node.done:before{background:linear-gradient(90deg,var(--primary),var(--accent));}
+  .status-node.active:before{background:var(--primary);box-shadow:0 0 0 3px rgba(109,94,245,.10);}
+  .status-node.done,.status-node.active{color:var(--text);}
+  .status-next{margin-top:16px;padding:12px 14px;border-radius:12px;background:#fff;border:1px solid var(--border);font-size:13px;}
+  .status-next b{display:block;margin-bottom:2px;}
+  @media(max-width:700px){.status-timeline{grid-template-columns:repeat(3,1fr);row-gap:14px;}}
+
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);}
+  .chart-card h3{font-size:15px;margin-bottom:3px;}
+  .chart-card p{font-size:12px;color:var(--text-secondary);margin-bottom:12px;}
+  .chart-wrap{height:220px;position:relative;}
+  .chart-wrap svg{width:100%;height:100%;overflow:visible;}
+  .chart-gridline{stroke:#E9EBF2;stroke-width:1;}
+  .bar{fill:url(#barGrad);rx:7;transition:opacity .2s;}
+  .bar:hover{opacity:.75;}
+  .line-fill{fill:url(#areaGrad);opacity:.75;}
+  .line-path{fill:none;stroke:var(--primary);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;}
+  .chart-label{font-size:10px;fill:#94A3B8;}
+  .chart-value{font-size:10px;fill:#475569;font-weight:700;}
+  .recovery-card{margin-top:16px;background:linear-gradient(135deg,#F5F3FF,#ECFEFA);border:1px solid #DDD8FF;border-radius:var(--radius);padding:18px;}
+  .recovery-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+  .recovery-step{background:rgba(255,255,255,.72);border:1px solid rgba(109,94,245,.12);border-radius:12px;padding:12px;}
+  .recovery-step .step{font-size:11px;color:var(--text-muted);font-weight:800;text-transform:uppercase;}
+  .recovery-step b{display:block;font-size:13px;margin:4px 0;}
+  .recovery-step span{font-size:11px;color:var(--text-secondary);}
+  @media(max-width:760px){.chart-grid{grid-template-columns:1fr;}.location-grid{grid-template-columns:1fr;}.recovery-steps{grid-template-columns:1fr;}}
+
+  .nav-links{display:flex;gap:4px;list-style:none;padding:0;margin:0;}
+  .nav-links button{padding:8px 14px;border-radius:999px;font-size:14px;font-weight:500;color:var(--text-secondary);transition:background .15s,color .15s;}
+  .nav-links button:hover{background:var(--primary-light);color:var(--primary);}
+  .nav-links button.active{background:var(--primary-light);color:var(--primary);}
+  .nav-right{display:flex;align-items:center;gap:10px;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:999px;font-size:14px;font-weight:600;transition:transform .1s,box-shadow .15s,background .15s;white-space:nowrap;}
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--primary);color:#fff;box-shadow:0 1px 2px rgba(79,70,229,.3);}
+  .btn-primary:hover{background:var(--primary-dark);}
+  .btn-secondary{background:var(--primary-light);color:var(--primary);}
+  .btn-secondary:hover{background:#E0E7FF;}
+  .btn-ghost{background:transparent;color:var(--text-secondary);border:1px solid var(--border);}
+  .btn-ghost:hover{background:var(--bg);}
+  .btn-danger-ghost{background:transparent;color:var(--danger);border:1px solid var(--danger-bg);}
+  .btn-block{width:100%;}
+  .btn-lg{padding:13px 26px;font-size:15px;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .icon-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);position:relative;}
+  .icon-btn:hover{background:var(--bg);}
+  .badge-dot{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:var(--danger);border:2px solid #fff;}
+  .nav-role{width:auto;padding:7px 10px;font-size:12px;font-weight:700;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--text-secondary);cursor:pointer;}
+  .hamburger{display:none;}
+  #notifPanel{position:absolute;right:24px;top:60px;width:320px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);z-index:200;max-height:400px;overflow-y:auto;}
+  #notifPanel.hidden{display:none;}
+  .notif-item{padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;}
+  .notif-item:last-child{border-bottom:none;}
+  .notif-item b{display:block;margin-bottom:2px;font-size:13px;}
+  .notif-item span{color:var(--text-secondary);}
+
+  /* ===== HERO ===== */
+  .hero{padding:64px 0 48px;text-align:center;}
+  .hero h1{font-size:44px;line-height:1.15;margin-bottom:16px;}
+  .hero p.sub{font-size:17px;color:var(--text-secondary);max-width:560px;margin:0 auto 28px;}
+  .hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:40px;}
+  .trust-row{display:flex;justify-content:center;gap:28px;flex-wrap:wrap;font-size:13px;color:var(--text-secondary);margin-bottom:40px;}
+  .trust-row span{display:flex;align-items:center;gap:6px;}
+  .match-teaser{max-width:340px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:20px;text-align:left;}
+  .match-teaser .tag{display:inline-flex;align-items:center;gap:6px;background:var(--primary-light);color:var(--primary);font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;margin-bottom:12px;}
+  .match-teaser h3{font-size:16px;margin-bottom:4px;}
+  .match-teaser .score{font-size:28px;font-weight:700;color:var(--success);margin:8px 0 4px;}
+  .match-teaser .loc{font-size:13px;color:var(--text-secondary);margin-bottom:12px;}
+
+  /* ===== SECTIONS ===== */
+  section{padding:48px 0;}
+  .section-head{text-align:center;max-width:540px;margin:0 auto 36px;}
+  .section-head h2{font-size:28px;margin-bottom:10px;}
+  .section-head p{color:var(--text-secondary);font-size:15px;}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
+  @media(max-width:860px){.grid-3{grid-template-columns:1fr;}.grid-4{grid-template-columns:1fr 1fr;}}
+  .info-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:box-shadow .15s,transform .15s;}
+  .info-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);}
+  .info-card .num{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:10px;}
+  .info-card h4{font-size:16px;margin-bottom:6px;}
+  .info-card p{font-size:14px;color:var(--text-secondary);}
+  .info-card .ico{width:40px;height:40px;border-radius:10px;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:20px;}
+
+  .demo-banner{background:linear-gradient(0deg,var(--primary-light),var(--primary-light));border:1px solid #C7D2FE;border-radius:var(--radius);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 8px;}
+  .demo-banner .left{display:flex;align-items:center;gap:14px;}
+  .demo-banner .pill{font-size:11px;font-weight:700;color:var(--primary);background:#fff;padding:3px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em;}
+  .demo-banner h4{font-size:15px;margin-bottom:2px;}
+  .demo-banner p{font-size:13px;color:var(--text-secondary);}
+
+  .impact-note{font-size:12px;color:var(--text-muted);text-align:center;margin-top:14px;}
+  .impact-quote{text-align:center;font-size:15px;color:var(--text-secondary);max-width:520px;margin:24px auto 0;font-style:italic;}
+
+  .about-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;}
+  .about-box p{color:var(--text-secondary);font-size:15px;margin-bottom:16px;}
+  .future-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 20px;list-style:none;padding:0;margin:0;}
+  .future-list li{font-size:14px;color:var(--text-secondary);display:flex;align-items:center;gap:8px;}
+  .future-list li:before{content:"→";color:var(--primary);}
+  @media(max-width:640px){.future-list{grid-template-columns:1fr;}}
+
+  /* ===== FORM ===== */
+  .form-shell{max-width:640px;margin:0 auto;padding:40px 0 60px;}
+  .form-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);}
+  .toggle-row{display:flex;background:var(--bg);border-radius:999px;padding:4px;margin-bottom:24px;}
+  .toggle-btn{flex:1;padding:10px;border-radius:999px;font-size:14px;font-weight:600;color:var(--text-secondary);transition:background .15s,color .15s;}
+  .toggle-btn.active-lost{background:var(--danger-bg);color:var(--danger);}
+  .toggle-btn.active-found{background:var(--success-bg);color:var(--success);}
+  label{display:block;font-size:13px;font-weight:600;margin:16px 0 6px;color:var(--text);}
+  label .opt{font-weight:400;color:var(--text-muted);}
+  input[type=text],input[type=date],textarea,select{width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s;}
+  input:focus,textarea:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light);background:#fff;}
+  textarea{resize:vertical;min-height:80px;}
+  .upload-zone{border:2px dashed var(--border);border-radius:var(--radius-sm);padding:26px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;position:relative;}
+  .upload-zone:hover{border-color:var(--primary);background:var(--primary-light);}
+  .upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .upload-zone .ico{font-size:26px;margin-bottom:8px;}
+  .upload-zone p{font-size:14px;font-weight:500;}
+  .upload-zone span{font-size:12px;color:var(--text-muted);}
+  #photoPreview{margin-top:12px;max-height:160px;border-radius:var(--radius-sm);overflow:hidden;display:none;}
+  #photoPreview img{width:100%;max-height:160px;object-fit:cover;}
+  .field-error{font-size:12px;color:var(--danger);margin-top:5px;display:none;}
+  .field-error.show{display:block;}
+  .form-foot{margin-top:24px;}
+
+  /* ===== ANALYSIS ===== */
+  .analysis-shell{max-width:560px;margin:0 auto;padding:60px 0;text-align:center;}
+  .loading-box{padding:60px 0;}
+  .spinner{width:52px;height:52px;border:4px solid var(--primary-light);border-top-color:var(--primary);border-radius:50%;margin:0 auto 20px;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-box h3{font-size:17px;margin-bottom:6px;}
+  .loading-box p{color:var(--text-secondary);font-size:14px;}
+  .progress-track{width:220px;height:5px;background:var(--border);border-radius:999px;margin:20px auto 0;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--primary);width:0%;transition:width 1.4s ease;}
+  .analysis-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:26px;text-align:left;box-shadow:var(--shadow);}
+  .analysis-tag{display:inline-flex;align-items:center;gap:6px;background:var(--warning-bg);color:var(--warning);font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:16px;}
+  .analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px;}
+  .analysis-item{background:var(--bg);border-radius:var(--radius-sm);padding:12px 14px;}
+  .analysis-item .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;}
+  .analysis-item .val{font-size:15px;font-weight:600;}
+  .conf-high{color:var(--success);}
+  .conf-medium{color:var(--warning);}
+  .conf-low{color:var(--danger);}
+
+  /* ===== SUCCESS ===== */
+  .success-shell{max-width:480px;margin:0 auto;padding:70px 0;text-align:center;}
+  .success-ico{width:64px;height:64px;border-radius:50%;background:var(--success-bg);color:var(--success);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 18px;}
+  .success-shell h2{font-size:22px;margin-bottom:8px;}
+  .success-shell>p{color:var(--text-secondary);font-size:14px;margin-bottom:24px;}
+  .summary-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;text-align:left;margin-bottom:22px;}
+  .summary-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px;}
+  .summary-row:last-child{border-bottom:none;}
+  .summary-row .k{color:var(--text-secondary);}
+  .summary-row .v{font-weight:600;}
+  .status-pill{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;}
+  .status-searching{background:var(--warning-bg);color:var(--warning);}
+  .status-potential{background:var(--primary-light);color:var(--primary);}
+  .status-matched{background:var(--success-bg);color:var(--success);}
+  .status-recovered{background:#E0E7FF;color:#4338CA;}
+
+  /* ===== DASHBOARD ===== */
+  .dash-shell{padding:36px 0 60px;}
+  .dash-head{margin-bottom:26px;}
+  .dash-head h2{font-size:24px;margin-bottom:4px;}
+  .dash-head p{color:var(--text-secondary);font-size:14px;}
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
+  @media(max-width:760px){.stats-row{grid-template-columns:1fr 1fr;}}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+  .stat-card .n{font-size:26px;font-weight:700;}
+  .stat-card .l{font-size:13px;color:var(--text-secondary);margin-top:2px;}
+  .tabs-row{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
+  .tab-btn{padding:8px 16px;border-radius:999px;font-size:13px;font-weight:600;background:var(--card);border:1px solid var(--border);color:var(--text-secondary);}
+  .tab-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .search-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+  .search-row input{flex:2;min-width:200px;}
+  .search-row select{flex:1;min-width:130px;}
+  .items-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  @media(max-width:900px){.items-grid{grid-template-columns:1fr 1fr;}}
+  @media(max-width:600px){.items-grid{grid-template-columns:1fr;}}
+  .item-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s;}
+  .item-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+  .item-photo{height:130px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:34px;color:#A5B4FC;overflow:hidden;}
+  .item-photo img{width:100%;height:100%;object-fit:cover;}
+  .item-body{padding:14px 16px;}
+  .item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;}
+  .item-body h4{font-size:15px;}
+  .type-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap;}
+  .type-lost{background:var(--danger-bg);color:var(--danger);}
+  .type-found{background:var(--success-bg);color:var(--success);}
+  .item-meta{font-size:12px;color:var(--text-secondary);margin-bottom:10px;display:flex;flex-direction:column;gap:2px;}
+  .item-meta span{display:flex;align-items:center;gap:5px;}
+  .item-foot{display:flex;justify-content:space-between;align-items:center;}
+  .match-pct{font-size:12px;font-weight:700;color:var(--primary);}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
+  .empty-state .ico{font-size:34px;margin-bottom:12px;}
+
+  /* ===== MATCHES ===== */
+  .matches-shell{max-width:720px;margin:0 auto;padding:40px 0 60px;}
+  .match-hero{background:var(--card);border:2px solid var(--primary);border-radius:var(--radius);padding:26px;margin-bottom:20px;box-shadow:var(--shadow-md);}
+  .match-hero .tag{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;margin-bottom:16px;}
+  .score-big{text-align:center;margin-bottom:18px;}
+  .score-big .n{font-size:42px;font-weight:700;color:var(--primary);}
+  .score-big .l{font-size:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;}
+  .match-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+  @media(max-width:560px){.match-cols{grid-template-columns:1fr;}}
+  .match-col{background:var(--bg);border-radius:var(--radius-sm);padding:14px;}
+  .match-col .lbl{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;}
+  .match-col h4{font-size:15px;margin-bottom:6px;}
+  .match-col p{font-size:13px;color:var(--text-secondary);margin-bottom:2px;}
+  .check-list{list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:6px;}
+  .check-list li{font-size:14px;color:var(--text);display:flex;align-items:center;gap:8px;}
+  .check-list li .ck{color:var(--success);font-weight:700;}
+  .match-actions{display:flex;gap:10px;}
+  .plain-match-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+  .plain-match-card .info h4{font-size:14px;margin-bottom:3px;}
+  .plain-match-card .info p{font-size:12px;color:var(--text-secondary);}
+  .plain-match-card .score{font-size:16px;font-weight:700;color:var(--primary);}
+
+  /* ===== REVIEW / VERIFY / CONTACT ===== */
+  .review-shell,.verify-shell,.contact-shell{max-width:560px;margin:0 auto;padding:50px 0 60px;}
+  .review-title{text-align:center;margin-bottom:28px;}
+  .review-title h2{font-size:22px;margin-bottom:6px;}
+  .review-title p{color:var(--text-secondary);font-size:14px;}
+  .verify-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);}
+  .verify-icon{width:52px;height:52px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 16px;}
+  .verify-q{font-size:15px;font-weight:600;margin-bottom:14px;text-align:center;}
+  .verify-result{margin-top:16px;padding:14px;border-radius:var(--radius-sm);font-size:14px;display:none;}
+  .verify-result.show{display:block;}
+  .verify-result.ok{background:var(--success-bg);color:#15803D;}
+  .verify-result.fail{background:var(--danger-bg);color:#B91C1C;}
+  .privacy-note{font-size:12px;color:var(--text-muted);text-align:center;margin-top:18px;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .verify-result.warn{background:var(--warning-bg);color:#92400E;}
+  .verify-meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-muted);margin-top:10px;font-weight:600;}
+  .verify-source{background:var(--accent-soft);color:#0F766E;border:1px solid #C8F2E9;border-radius:12px;padding:10px 13px;font-size:12px;font-weight:650;margin-bottom:14px;text-align:center;}
+  .verify-source.weak{background:var(--warning-bg);color:#92400E;border-color:#FDE68A;}
+  .secret-box{margin-top:18px;border:1px dashed #C7D2FE;background:#FAFAFF;border-radius:14px;padding:14px 16px 4px;}
+  .secret-head{font-size:13px;font-weight:800;color:var(--primary);}
+  .secret-hint{font-size:12px;color:var(--text-secondary);margin-top:3px;}
+  .secret-box label{margin-top:12px;}
+  .claim-panel{background:var(--warning-bg);border:1px solid #FDE68A;border-radius:14px;padding:16px;margin-bottom:16px;text-align:left;}
+  .claim-panel .lbl{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#92400E;}
+  .claim-answer{background:#fff;border:1px solid var(--border);border-radius:10px;padding:11px 13px;font-size:14px;margin:8px 0 12px;word-break:break-word;}
+  .role-lock{background:var(--bg);border:1px dashed var(--border);border-radius:12px;padding:13px;font-size:13px;color:var(--text-secondary);text-align:center;}
+
+  .contact-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow);text-align:center;}
+  .contact-card .big-ico{font-size:36px;margin-bottom:10px;}
+  .contact-details{display:flex;justify-content:center;gap:28px;margin:18px 0 22px;flex-wrap:wrap;}
+  .contact-details div{text-align:left;}
+  .contact-details .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;}
+  .contact-details .val{font-size:14px;font-weight:600;}
+  .msg-box{background:var(--bg);border-radius:var(--radius-sm);padding:14px;text-align:left;font-size:14px;color:var(--text-secondary);margin-bottom:18px;border:1px solid var(--border);}
+
+  /* ===== TOAST ===== */
+  #toastContainer{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:10px;}
+  .toast{background:var(--text);color:#fff;padding:12px 18px;border-radius:var(--radius-sm);font-size:14px;box-shadow:var(--shadow-md);animation:toastin .2s ease;max-width:320px;}
+  @keyframes toastin{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+  /* ===== FOOTER ===== */
+  footer{border-top:1px solid var(--border);padding:40px 0 26px;margin-top:40px;}
+  .footer-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:24px;margin-bottom:22px;}
+  .footer-brand h4{font-size:16px;margin-bottom:6px;}
+  .footer-brand p{font-size:13px;color:var(--text-secondary);}
+  .footer-links{display:flex;gap:18px;list-style:none;padding:0;margin:0;flex-wrap:wrap;}
+  .footer-links button{font-size:13px;color:var(--text-secondary);}
+  .footer-links button:hover{color:var(--primary);}
+  .footer-bottom{border-top:1px solid var(--border);padding-top:18px;font-size:12px;color:var(--text-muted);text-align:center;}
+
+  @media(max-width:760px){
+    .nav-links{display:none;}
+    .hamburger{display:flex;width:38px;height:38px;align-items:center;justify-content:center;border-radius:8px;}
+    .hamburger:hover{background:var(--bg);}
+    #mobileMenu{display:none;flex-direction:column;gap:2px;padding:10px 24px 16px;border-top:1px solid var(--border);background:#fff;}
+    #mobileMenu.open{display:flex;}
+    #mobileMenu button{text-align:left;padding:10px 8px;border-radius:8px;font-size:14px;font-weight:500;color:var(--text-secondary);}
+    .hero h1{font-size:30px;}
+    .analysis-grid{grid-template-columns:1fr;}
+  }
+
+  /* ===== AUTH + SECURE CHAT ===== */
+  #authGate{position:fixed;inset:0;background:rgba(15,23,42,.62);backdrop-filter:blur(10px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
+  #authGate.hidden{display:none;}
+  .auth-card{width:min(460px,100%);background:#fff;border:1px solid var(--border);border-radius:24px;padding:30px;box-shadow:0 24px 70px rgba(15,23,42,.22);position:relative;overflow:hidden;}
+  .auth-card:before{content:"";position:absolute;inset:-100px auto auto -80px;width:220px;height:220px;background:radial-gradient(circle,rgba(109,94,245,.18),transparent 68%);pointer-events:none;}
+  .auth-logo{display:flex;align-items:center;gap:10px;font-weight:850;font-size:21px;margin-bottom:18px;}
+  .auth-sub{color:var(--text-secondary);font-size:14px;margin-bottom:20px;}
+  .auth-switch{display:flex;background:var(--bg);padding:4px;border-radius:999px;margin-bottom:18px;}
+  .auth-switch button{flex:1;padding:9px;border-radius:999px;font-weight:700;color:var(--text-secondary);}
+  .auth-switch button.active{background:var(--primary);color:#fff;}
+  .auth-foot{font-size:11px;color:var(--text-muted);margin-top:14px;text-align:center;}
+  .user-chip{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:999px;background:var(--primary-light);color:var(--primary);font-size:12px;font-weight:700;}
+  .chat-shell{max-width:760px;margin:0 auto;padding:40px 0 60px;}
+  .chat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-md);}
+  .chat-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px;}
+  .chat-head p{font-size:12px;color:var(--text-secondary);}
+  .chat-messages{height:360px;overflow:auto;padding:20px;background:linear-gradient(180deg,#fafbff,#f7fafb);}
+  .bubble{max-width:78%;padding:10px 13px;border-radius:16px;margin-bottom:10px;font-size:13px;box-shadow:0 1px 2px rgba(15,23,42,.05);}
+  .bubble.me{margin-left:auto;background:var(--primary);color:#fff;border-bottom-right-radius:5px;}
+  .bubble.them{background:#fff;border:1px solid var(--border);border-bottom-left-radius:5px;}
+  .bubble small{display:block;font-size:10px;opacity:.72;margin-top:4px;}
+  .chat-compose{padding:14px;border-top:1px solid var(--border);display:flex;gap:8px;}
+  .chat-compose input{flex:1;}
+  .security-strip{padding:10px 14px;background:var(--accent-soft);color:#0F766E;font-size:12px;font-weight:650;}
+  .handover-panel{margin-top:16px;background:linear-gradient(135deg,#F5F3FF,#ECFEFA);border:1px solid #DDD8FF;border-radius:16px;padding:18px;}
+  .role-demo{margin-top:14px;padding:12px;border:1px dashed #C7D2FE;border-radius:12px;background:#FAFAFF;}
+  .role-demo select{width:100%;margin-top:7px;}
+</style>
+</head>
+<body>
+<div id="authGate">
+  <div class="auth-card">
+    <div class="auth-logo"><span class="brand-mark"></span><span>ReFind <span style="color:var(--primary)">AI</span></span></div>
+    <h2 id="authTitle">Create your account</h2>
+    <p class="auth-sub">Join the public lost & found network. Your contact details stay private until a verified recovery connection is made.</p>
+    <div class="auth-switch"><button id="authEmailBtn" class="active">Email</button><button id="authPhoneBtn">Phone</button></div>
+    <label id="authContactLabel">Email address</label>
+    <input id="authContact" type="text" placeholder="you@example.com" autocomplete="email">
+    <label>Display name</label>
+    <input id="authName" type="text" placeholder="Your name">
+    <button class="btn btn-primary btn-lg btn-block" id="authContinue" style="margin-top:20px;">Continue securely</button>
+    <div class="role-demo"><b style="font-size:12px;">Demo identity</b><div style="font-size:11px;color:var(--text-secondary);">For a judge demo, switch between Owner and Finder to see both sides of notifications, chat and handover confirmation.</div><select id="demoRole"><option value="owner">Owner / Lost item</option><option value="finder">Finder / Found item</option></select></div>
+    <div class="auth-foot">By continuing, you agree to use ReFind responsibly. This prototype simulates verification and notifications locally; production can connect Firebase/Supabase + SMS/email providers.</div>
+  </div>
+</div>
+
+
+<!-- ===== NAVBAR ===== -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <div class="logo"><span class="brand-mark" aria-hidden="true"></span><span>ReFind <span style="color:var(--primary)">AI</span></span></div>
+    <ul class="nav-links" id="navLinks">
+      <li><button data-page="home">Home</button></li>
+      <li><button data-page="report">Report</button></li>
+      <li><button data-page="matches">Matches</button></li>
+      <li><button data-page="dashboard">Dashboard</button></li><li><button data-page="chat">Secure Chat</button></li>
+    </ul>
+    <div class="nav-right">
+      <div class="user-chip" id="userChip">👤 Guest</div>
+      <select id="navRole" class="nav-role" aria-label="Demo identity"><option value="owner">👤 Owner view</option><option value="finder">🧭 Finder view</option></select>
+      <button class="icon-btn" id="notifBtn" aria-label="Notifications">🔔<span id="notifDot" class="badge-dot" style="display:none;"></span></button>
+      <button class="btn btn-primary" data-page="report" data-type="lost">Report item</button>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Menu">☰</button>
+    </div>
+  </div>
+  <div id="mobileMenu">
+    <button data-page="home">Home</button>
+    <button data-page="report">Report</button>
+    <button data-page="matches">Matches</button>
+    <button data-page="dashboard">Dashboard</button>
+    <button data-page="chat">Secure Chat</button>
+  </div>
+  <div id="notifPanel" class="hidden"></div>
+</nav>
+
+<!-- ===== HOME ===== -->
+<div class="page active" id="page-home">
+  <div class="container">
+    <section class="hero hero-wrap"><div class="hero-glow"></div>
+      <div style="display:inline-flex;align-items:center;gap:8px;background:var(--accent-soft);color:#0F766E;border:1px solid #C8F2E9;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800;margin-bottom:16px;">🌍 Open community recovery network</div>
+      <h1>Lost something?<br/><span style="background:linear-gradient(90deg,var(--primary),#14B8A6);-webkit-background-clip:text;color:transparent;">Let AI bring it back.</span></h1>
+      <p class="sub">A public, privacy-first lost &amp; found network that matches items, verifies ownership and closes the loop when the owner receives them.</p>
+      <div class="hero-ctas">
+        <button class="btn btn-primary btn-lg" data-page="report" data-type="lost">I lost something</button>
+        <button class="btn btn-secondary btn-lg" data-page="report" data-type="found">I found something</button>
+      </div>
+
+      <div class="trust-row" style="margin-top:40px;">
+        <span>✅ AI-assisted matching</span>
+        <span>🔒 Secure verification</span>
+        <span>🤝 Community powered</span><span>🌐 Public-place ready</span>
+      </div>
+    </section>
+
+
+
+    <section>
+      <div class="section-head">
+        <h2>Lost items shouldn't become permanently lost.</h2>
+      </div>
+      <div class="grid-3">
+        <div class="info-card"><div class="ico">💬</div><h4>Scattered reports</h4><p>Lost-item information gets buried in chats and groups.</p></div>
+        <div class="info-card"><div class="ico">🔍</div><h4>Manual searching</h4><p>People spend time checking multiple places.</p></div>
+        <div class="info-card"><div class="ico">🛡️</div><h4>No reliable verification</h4><p>Finding an item does not automatically prove ownership.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>One smart recovery flow.</h2>
+      </div>
+      <div class="grid-4">
+        <div class="info-card"><div class="num">01</div><h4>Report</h4><p>Create a lost or found report.</p></div>
+        <div class="info-card"><div class="num">02</div><h4>Analyze</h4><p>AI extracts useful item information.</p></div>
+        <div class="info-card"><div class="num">03</div><h4>Match</h4><p>Compare lost and found reports.</p></div>
+        <div class="info-card"><div class="num">04</div><h4>Verify</h4><p>Confirm ownership before recovery.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head"><h2>Impact so far</h2></div>
+      <div class="grid-4">
+        <div class="info-card" style="text-align:center;"><div class="num" style="font-size:24px;color:var(--text);">128</div><p>Items reported</p></div>
+        <div class="info-card" style="text-align:center;"><div class="num" style="font-size:24px;color:var(--text);">47</div><p>Potential matches</p></div>
+        <div class="info-card" style="text-align:center;"><div class="num" style="font-size:24px;color:var(--text);">31</div><p>Items recovered</p></div>
+        <div class="info-card" style="text-align:center;"><div class="num" style="font-size:24px;color:var(--text);">24%</div><p>Recovery rate</p></div>
+      </div>
+      <p class="impact-note">Demo data — illustrative, not live statistics.</p>
+      <p class="impact-quote">"Every successful match helps return belongings to their owners instead of leaving them permanently lost."</p>
+    </section>
+
+    <section>
+      <div class="about-box">
+        <div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;">
+          <div style="max-width:720px;">
+            <div class="tag" style="display:inline-flex;background:var(--primary-light);color:var(--primary);padding:5px 10px;border-radius:999px;font-size:11px;font-weight:800;margin-bottom:10px;">OPEN SOURCE • COMMUNITY FIRST</div>
+            <h3 style="margin-bottom:12px;">About this concept</h3>
+            <p>ReFind AI is a technology concept designed to make public lost-and-found systems faster, smarter and easier to use — from metro stations and airports to malls, parks, offices, libraries and events.</p>
+            <p style="margin-bottom:10px;">Its key idea is simple: <strong>AI finds the likely match, private verification protects ownership, and a two-sided handover flow confirms the item actually reached its owner.</strong></p>
+          </div>
+          <div style="background:var(--accent-soft);border:1px solid #C8F2E9;border-radius:14px;padding:14px 16px;min-width:190px;">
+            <div style="font-size:12px;color:#0F766E;font-weight:800;">BUILT FOR EVERYWHERE</div>
+            <div style="font-size:22px;font-weight:800;margin-top:4px;">Public + Open</div>
+            <div style="font-size:12px;color:var(--text-secondary);">No campus lock-in.</div>
+          </div>
+        </div>
+        <p style="font-weight:700;color:var(--text);margin:22px 0 10px;">Future possibilities</p>
+        <ul class="future-list">
+          <li>Public-place deployment</li><li>Firebase / Supabase database</li>
+          <li>Real AI image recognition</li><li>Push notifications</li>
+          <li>QR-based item tags</li><li>Transit / security integration</li>
+          <li>Multi-city recovery network</li><li>Admin moderation dashboard</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ===== REPORT ===== -->
+<div class="page" id="page-report">
+  <div class="container form-shell">
+    <div class="form-card">
+      <div class="toggle-row">
+        <button class="toggle-btn" id="toggleLost">🔴 I lost something</button>
+        <button class="toggle-btn" id="toggleFound">🟢 I found something</button>
+      </div>
+      <form id="reportForm" novalidate>
+        <label>Item photo <span class="opt">(optional)</span></label>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="photoInput" accept="image/jpeg,image/png" />
+          <div class="ico">📷</div>
+          <p>Upload item photo</p>
+          <span>JPG or PNG</span>
+        </div>
+        <div id="photoPreview"><img id="photoPreviewImg" alt="Uploaded item preview" /></div>
+
+        <label>Item name</label>
+        <input type="text" id="f-name" placeholder="e.g. Black wallet" />
+        <div class="field-error" id="err-name">Enter the item name.</div>
+
+        <label>Category</label>
+        <select id="f-category">
+          <option value="">Select category</option>
+          <option>Wallet</option><option>Phone</option><option>Earbuds</option>
+          <option>ID card</option><option>Keys</option><option>Bag</option>
+          <option>Books</option><option>Calculator</option><option>Other</option>
+        </select>
+
+        <label>Description</label>
+        <textarea id="f-desc" placeholder="Black leather wallet with a small silver logo."></textarea>
+        <div class="field-error" id="err-desc">Add a short description.</div>
+
+        <label>Location type</label>
+        <div class="location-grid">
+          <select id="f-locationType">
+            <option value="">Select type</option><option>Metro / Train station</option><option>Airport</option><option>Bus terminal</option><option>Mall / Market</option><option>Park / Public space</option><option>Cafe / Restaurant</option><option>Office / Workplace</option><option>Library / Education</option><option>Hospital</option><option>Hotel</option><option>Event / Venue</option><option>Street / Road</option><option>Other public place</option>
+          </select>
+          <input type="text" id="f-location" placeholder="e.g. Rajiv Chowk Metro Station" />
+        </div>
+        <div class="location-hint">Choose the place type and add the public location. Exact private addresses should not be posted.</div>
+        <div class="field-error" id="err-location">Enter a public location.</div>
+
+        <label>Date</label>
+        <input type="date" id="f-date" />
+
+        <div class="secret-box">
+          <div class="secret-head">🔐 <b id="secretTitle">Private verification detail</b></div>
+          <p class="secret-hint" id="secretHint">Something about the item that is <b>not</b> in the public description above.</p>
+
+          <label id="featureLabel">Distinctive detail <span class="opt">(never shown publicly)</span></label>
+          <input type="text" id="f-feature" placeholder="e.g. cracked left bud, sticker inside the case" />
+          <div class="field-error" id="err-feature">A finder must add a private detail — this is what proves the real owner.</div>
+
+          <div id="questionWrap">
+            <label>Question for the owner <span class="opt">(optional)</span></label>
+            <input type="text" id="f-question" placeholder="e.g. What is stuck inside the charging case?" />
+            <div class="location-hint">If you leave this empty, ReFind AI generates a question automatically.</div>
+          </div>
+        </div>
+
+        <label>Contact <span class="opt">(kept private, shown only after verification)</span></label>
+        <input type="text" id="f-contact" placeholder="Email or phone" />
+
+        <div class="form-foot">
+          <button type="submit" class="btn btn-primary btn-lg btn-block">Analyze with AI</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ANALYSIS ===== -->
+<div class="page" id="page-analysis">
+  <div class="container analysis-shell">
+    <div id="analysisLoading" class="loading-box">
+      <div class="spinner"></div>
+      <h3>🤖 Analyzing item...</h3>
+      <p>Extracting category, color and distinctive details.</p>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+    <div id="analysisResult" style="display:none;">
+      <div class="analysis-card">
+        <span class="analysis-tag">⚡ AI demo analysis</span>
+        <div class="analysis-grid">
+          <div class="analysis-item"><div class="lbl">Category</div><div class="val" id="an-category">–</div></div>
+          <div class="analysis-item"><div class="lbl">Primary color</div><div class="val" id="an-color">–</div></div>
+          <div class="analysis-item"><div class="lbl">Material</div><div class="val" id="an-material">–</div></div>
+          <div class="analysis-item"><div class="lbl">Confidence</div><div class="val" id="an-confidence">–</div></div>
+        </div>
+        <div class="analysis-item" style="margin-top:14px;">
+          <div class="lbl">Distinctive features</div>
+          <div class="val" id="an-feature" style="font-size:14px;">–</div>
+        </div>
+        <div class="analysis-item" style="margin-top:10px;">
+          <div class="lbl">Location</div>
+          <div class="val" id="an-location" style="font-size:14px;">–</div>
+        </div>
+        <button class="btn btn-primary btn-lg btn-block" style="margin-top:22px;" id="createReportBtn">Create report</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== REPORT CREATED ===== -->
+<div class="page" id="page-created">
+  <div class="container success-shell">
+    <div class="success-ico">✅</div>
+    <h2>Report created</h2>
+    <p>Your item has been added to the Lost &amp; Found network.</p>
+    <div class="summary-card">
+      <div class="summary-row"><span class="k">Report ID</span><span class="v" id="created-id">–</span></div>
+      <div class="summary-row"><span class="k">Item</span><span class="v" id="created-item">–</span></div>
+      <div class="summary-row"><span class="k">Type</span><span class="v" id="created-type">–</span></div>
+      <div class="summary-row"><span class="k">Location</span><span class="v" id="created-location">–</span></div>
+      <div class="summary-row"><span class="k">Status</span><span class="v"><span class="status-pill status-searching" id="created-status">Searching for matches...</span></span></div>
+    </div>
+    <button class="btn btn-primary btn-lg btn-block" id="viewMatchesBtn">View matches</button>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div class="page" id="page-dashboard">
+  <div class="container dash-shell">
+    <div class="dash-head">
+      <h2>Welcome back 👋</h2>
+      <p>Track your reports and potential matches.</p>
+    </div>
+    <div class="my-status-card" id="myStatusCard"></div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="n" id="stat-lost">0</div><div class="l">Lost items</div></div>
+      <div class="stat-card"><div class="n" id="stat-found">0</div><div class="l">Found items</div></div>
+      <div class="stat-card"><div class="n" id="stat-matches">0</div><div class="l">Potential matches</div></div>
+      <div class="stat-card"><div class="n" id="stat-recovered">0</div><div class="l">Recovered</div></div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card"><h3>Overview</h3><p>Current report and recovery mix</p><div class="chart-wrap" id="overviewChart"></div></div>
+      <div class="chart-card"><h3>Reports over time</h3><p>Lost, found and recovered activity</p><div class="chart-wrap" id="reportsChart"></div></div>
+    </div>
+    <div class="recovery-card" id="recoveryJourney"><div style="font-weight:800;font-size:15px;">🤝 Recovery confirmation</div><div style="font-size:12px;color:var(--text-secondary);margin-top:3px;">A recovery is only complete when the finder confirms handover and the owner confirms receipt.</div><div class="recovery-steps"><div class="recovery-step"><span class="step">01</span><b>Match verified</b><span>Ownership challenge passed.</span></div><div class="recovery-step"><span class="step">02</span><b>Finder hands over</b><span>Finder confirms the item was returned.</span></div><div class="recovery-step"><span class="step">03</span><b>Owner receives</b><span>Owner confirms receipt. Case closes.</span></div></div></div>
+    <div class="tabs-row" id="dashTabs">
+      <button class="tab-btn active" data-filter="all">All</button>
+      <button class="tab-btn" data-filter="lost">Lost</button>
+      <button class="tab-btn" data-filter="found">Found</button>
+      <button class="tab-btn" data-filter="recovered">Recovered</button>
+    </div>
+    <div class="search-row">
+      <input type="text" id="dashSearch" placeholder="Search lost or found items…" />
+      <select id="dashCategory">
+        <option value="">All categories</option>
+        <option>Wallet</option><option>Phone</option><option>Earbuds</option>
+        <option>ID card</option><option>Keys</option><option>Bag</option>
+        <option>Books</option><option>Calculator</option><option>Other</option>
+      </select>
+    </div>
+    <div class="items-grid" id="dashGrid"></div>
+  </div>
+</div>
+
+<!-- ===== MATCHES ===== -->
+<div class="page" id="page-matches">
+  <div class="container matches-shell">
+    <div class="section-head" style="text-align:left;margin:0 0 22px;">
+      <h2>Smart matches</h2>
+      <p>Potential matches discovered from lost and found reports.</p>
+    </div>
+    <div id="matchesList"></div>
+  </div>
+</div>
+
+<!-- ===== MATCH REVIEW ===== -->
+<div class="page" id="page-review">
+  <div class="container review-shell">
+    <div class="review-title"><h2>Match review</h2><p>Compare the details before verifying ownership.</p></div>
+    <div class="match-hero">
+      <div class="score-big">
+        <div class="n" id="rev-score">–</div>
+        <div class="l" id="rev-strength">Match score</div>
+      </div>
+      <div class="match-cols">
+        <div class="match-col">
+          <div class="lbl">Your lost item</div>
+          <h4 id="rev-lost-name">–</h4>
+          <p id="rev-lost-color">–</p><p id="rev-lost-material">–</p><p id="rev-lost-location">–</p>
+        </div>
+        <div class="match-col">
+          <div class="lbl">Found item</div>
+          <h4 id="rev-found-name">–</h4>
+          <p id="rev-found-color">–</p><p id="rev-found-material">–</p><p id="rev-found-location">–</p>
+        </div>
+      </div>
+      <p style="font-weight:600;font-size:14px;margin-bottom:10px;">Why this match?</p>
+      <ul class="check-list" id="rev-reasons"></ul>
+      <div id="finderClaimPanel" style="display:none;"></div>
+      <div class="match-actions" id="ownerActions">
+        <button class="btn btn-primary btn-block" id="startVerifyBtn">Start ownership verification</button>
+        <button class="btn btn-ghost" id="notMyItemBtn">Not my item</button>
+      </div>
+      <div class="role-lock" id="finderWaitNote" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VERIFICATION ===== -->
+<div class="page" id="page-verify">
+  <div class="container verify-shell">
+    <div class="review-title"><h2>Verify ownership</h2><p>Before contacting the finder, confirm details only the real owner should know.</p></div>
+    <div class="verify-card">
+      <div class="verify-icon">🔒</div>
+      <div class="verify-source" id="verifySource"></div>
+      <p class="verify-q" id="verify-question">What distinctive detail was associated with your item?</p>
+      <input type="text" id="verifyInput" placeholder="Your answer…" />
+      <button class="btn btn-primary btn-lg btn-block" style="margin-top:14px;" id="verifyBtn">Verify</button>
+      <div class="verify-meta"><span id="verifyAttempts">Attempt 1 of 3</span><button id="verifyBackBtn" style="font-size:12px;font-weight:700;color:var(--text-secondary);">← Back to match</button></div>
+      <div class="verify-result" id="verifyResult"></div>
+      <p class="privacy-note">🔒 Personal information isn't shown until verification succeeds.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CONTACT FINDER ===== -->
+<div class="page" id="page-contact">
+  <div class="container contact-shell">
+    <div class="review-title"><h2>🎉 Match verified</h2></div>
+    <div class="contact-card">
+      <div class="contact-details">
+        <div><div class="lbl">Item</div><div class="val" id="contact-item">–</div></div>
+        <div><div class="lbl">Finder</div><div class="val">Anonymous member</div></div>
+        <div><div class="lbl">Location</div><div class="val" id="contact-location">–</div></div>
+      </div>
+      <p style="font-weight:600;font-size:14px;margin-bottom:8px;">Contact through Lost &amp; Found</p>
+      <div class="msg-box" id="contact-message">Hi, I believe this is my lost item. I have verified the ownership details.</div>
+      <button class="btn btn-primary btn-lg btn-block" id="sendMsgBtn">Send message</button>
+      <div id="afterSend" style="display:none;margin-top:18px;">
+        <p style="font-size:14px;color:var(--success);font-weight:600;margin-bottom:4px;">✅ Message sent</p>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Please arrange the handover through a safe public location or campus authority.</p>
+        <button class="btn btn-secondary btn-lg btn-block" id="markRecoveredBtn">Finder confirms handover</button>
+      </div>
+      <div id="afterRecover" style="display:none;margin-top:18px;">
+        <p style="font-size:16px;font-weight:700;color:var(--primary);">🤝 Handover marked by finder</p>
+        <p style="font-size:13px;color:var(--text-secondary);margin:5px 0 14px;">Now the owner confirms they physically received the item. This second confirmation closes the recovery case.</p>
+        <button class="btn btn-primary btn-lg btn-block" id="confirmReceivedBtn">Owner confirms received</button>
+      </div>
+      <div id="afterOwnerConfirm" style="display:none;margin-top:18px;">
+        <p style="font-size:18px;font-weight:800;color:var(--success);">🎉 Recovery complete</p>
+        <p style="font-size:13px;color:var(--text-secondary);margin-top:5px;">Both sides confirmed the handover. The item is now marked as recovered.</p>
+        <button class="btn btn-primary" data-page="dashboard" style="margin-top:12px;">Go to dashboard</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FOUND ITEM MATCH VIEW REUSES page-matches/page-review ===== -->
+
+
+<!-- ===== SECURE CHAT ===== -->
+<div class="page" id="page-chat">
+  <div class="container chat-shell">
+    <div class="section-head" style="text-align:left;margin:0 0 18px;"><h2>Secure recovery chat</h2><p>Connect without exposing phone numbers or email addresses by default.</p></div>
+    <div class="chat-card">
+      <div class="chat-head"><div><b id="chatTitle">Potential recovery connection</b><p id="chatSubtitle">Owner ↔ Finder • identity protected</p></div><span class="status-pill status-matched">Verified</span></div>
+      <div class="security-strip">🔒 ReFind relay: personal contact details stay hidden unless both people choose to share them.</div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-compose"><input id="chatInput" placeholder="Write a message…"><button class="btn btn-primary" id="chatSend">Send</button></div>
+    </div>
+    <div class="handover-panel">
+      <b>🤝 Recovery handover</b>
+      <p style="font-size:12px;color:var(--text-secondary);margin:4px 0 12px;">A case closes only after the finder marks the item handed over and the owner confirms receipt.</p>
+      <div class="match-actions"><button class="btn btn-secondary" id="chatHandoverBtn">Finder confirms handover</button><button class="btn btn-primary" id="chatReceivedBtn">Owner confirms received</button></div>
+      <div id="chatRecoveryStatus" style="font-size:12px;font-weight:700;margin-top:12px;color:var(--text-secondary);"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer"></div>
+
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <h4 style="display:flex;align-items:center;gap:8px;"><span class="brand-mark" style="width:28px;height:28px;border-radius:9px;"></span>ReFind AI</h4>
+        <p>Lost something? Let AI find its match.</p>
+      </div>
+      <ul class="footer-links">
+        <li><button data-page="home">Home</button></li>
+        <li><button data-page="report">Report</button></li>
+        <li><button data-page="matches">Matches</button></li>
+        <li><button data-page="dashboard">Dashboard</button></li>
+        <li><button id="privacyLink">Privacy</button></li>
+      </ul>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">🔒 Personal information is not publicly displayed. Ownership verification is required before connecting users.</p>
+    <div class="footer-bottom">Open-source concept • Built for communities and public places • Privacy-first recovery</div>
+  </div>
+</footer>
+
+<script>
+/* =========================================================
+   LOST & FOUND AI — PROTOTYPE LOGIC
+   Vanilla JS, localStorage only, no backend, no paid APIs.
+   ========================================================= */
+
+const STORE_KEY = 'lf_reports';
+const NOTIF_KEY = 'lf_notifications';
+const SEED_KEY  = 'lf_seeded';
+const USER_KEY = 'refind_user';
+const CHAT_KEY = 'refind_chat';
+const DEMO_ROLE_KEY = 'refind_demo_role';
+
+let state = {
+  reportType: 'lost',
+  photoDataUrl: null,
+  currentMatch: null,     // {lostId, foundId, score, breakdown}
+  dashFilter: 'all'
+};
+
+/* ---------- storage helpers ---------- */
+function getReports(){ return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); }
+function saveReports(list){ localStorage.setItem(STORE_KEY, JSON.stringify(list)); }
+function getNotifs(){ return JSON.parse(localStorage.getItem(NOTIF_KEY) || '[]'); }
+function saveNotifs(list){ localStorage.setItem(NOTIF_KEY, JSON.stringify(list)); }
+
+function uid(prefix){ return prefix + '-' + Math.random().toString(36).slice(2,8).toUpperCase(); }
+
+/* ---------- navigation ---------- */
+function getUser(){ try{return JSON.parse(localStorage.getItem(USER_KEY)||'null')}catch(e){return null} }
+function saveUser(u){localStorage.setItem(USER_KEY,JSON.stringify(u));}
+function getChat(){try{return JSON.parse(localStorage.getItem(CHAT_KEY)||'[]')}catch(e){return []}}
+function saveChat(v){localStorage.setItem(CHAT_KEY,JSON.stringify(v))}
+function currentRole(){return localStorage.getItem(DEMO_ROLE_KEY)||'owner'}
+function ensureAuth(){
+  const u=getUser();
+  document.getElementById('authGate').classList.toggle('hidden',!!u);
+  if(u){document.getElementById('userChip').textContent='👤 '+(u.name||u.contact||'Member');}
+}
+function addNotification(title, body, role='both'){
+  const list=getNotifs(); list.unshift({id:uid('NT'),title,body,role,read:false,createdAt:Date.now()}); saveNotifs(list.slice(0,50)); renderNotifDot();
+}
+function notifyMatch(lost,found,score){
+  addNotification('Potential match found',`${lost.name} may have been found at ${found.location}. Match confidence: ${score}%.`, 'owner');
+  addNotification('Potential owner found',`Your found ${found.name} may belong to a reported owner. Ownership verification is required.`, 'finder');
+}
+function addChatMessage(sender,text){
+  const chat=getChat(); chat.push({sender,text,at:Date.now()}); saveChat(chat); renderChat();
+}
+function renderChat(){
+  const box=document.getElementById('chatMessages'); if(!box)return;
+  const me=currentRole(); const chat=getChat();
+  box.innerHTML=chat.map(m=>`<div class="bubble ${m.sender===me?'me':'them'}"><b>${m.sender===me?'You':m.sender==='owner'?'Verified owner':'Verified finder'}</b><div>${esc(m.text)}</div><small>${new Date(m.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</small></div>`).join('') || '<div style="text-align:center;color:#94A3B8;font-size:12px;padding:90px 10px;">No messages yet. Start a secure recovery conversation.</div>';
+  box.scrollTop=box.scrollHeight;
+}
+function updateRecoveryStatus(){
+  const reports=getReports(); const r=reports.find(x=>x.id===window.activeRecoveryId);
+  const el=document.getElementById('chatRecoveryStatus'); if(!el||!r)return;
+  if(r.ownerConfirmedReceived){el.textContent='🎉 Recovery complete — owner confirmed receipt.';el.style.color='var(--success)';}
+  else if(r.handoverConfirmed){el.textContent='✅ Finder marked the item handed over. Waiting for owner confirmation.';el.style.color='var(--primary)';}
+  else el.textContent='Waiting for finder handover and owner receipt confirmations.';
+}
+function openSecureChat(){showPage('chat');renderChat();updateRecoveryStatus();}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-links button, #mobileMenu button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.page === id);
+  });
+  document.getElementById('mobileMenu').classList.remove('open');
+  window.scrollTo({top:0, behavior:'smooth'});
+  if(id === 'dashboard') renderDashboard();
+  if(id === 'matches') renderMatchesPage();
+  if(id === 'contact') renderContactActions();
+  if(id === 'review' && state.currentMatch) renderReviewActions();
+  if(id === 'chat'){ renderChat(); updateRecoveryStatus(); }
+}
+
+document.querySelectorAll('[data-page]').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    const type = el.getAttribute('data-type');
+    if(type){ setReportType(type); }
+    showPage(el.getAttribute('data-page'));
+  });
+});
+document.getElementById('hamburgerBtn').addEventListener('click', ()=>{
+  document.getElementById('mobileMenu').classList.toggle('open');
+});
+
+/* ---------- toast ---------- */
+function showToast(msg){
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(()=>{ t.remove(); }, 3200);
+}
+
+/* ---------- notifications ---------- */
+function showNotification(title, body, role='both'){
+  const list = getNotifs();
+  // role was missing here, so the panel filter silently hid every one of these.
+  list.unshift({id:uid('N'), title, body, role, ts:Date.now(), read:false});
+  saveNotifs(list.slice(0,30));
+  renderNotifDot();
+  showToast(title);
+}
+function renderNotifDot(){
+  const unread = getNotifs().some(n=>!n.read);
+  document.getElementById('notifDot').style.display = unread ? 'block' : 'none';
+}
+function renderNotifPanel(){
+  const panel = document.getElementById('notifPanel');
+  const role=currentRole(); const list = getNotifs().filter(n=>n.role==='both'||n.role===role);
+  panel.innerHTML = list.length
+    ? list.map(n=>`<div class="notif-item"><b>🔔 ${esc(n.title)}</b><span>${esc(n.body)}</span></div>`).join('')
+    : '<div class="notif-item"><span>No notifications yet.</span></div>';
+}
+document.getElementById('notifBtn').addEventListener('click', ()=>{
+  const panel = document.getElementById('notifPanel');
+  panel.classList.toggle('hidden');
+  if(!panel.classList.contains('hidden')){
+    renderNotifPanel();
+    const list = getNotifs().map(n=>({...n, read:true}));
+    saveNotifs(list);
+    renderNotifDot();
+  }
+});
+document.addEventListener('click', (e)=>{
+  const panel = document.getElementById('notifPanel');
+  if(!panel.contains(e.target) && e.target.id !== 'notifBtn'){
+    panel.classList.add('hidden');
+  }
+});
+
+/* ---------- util ---------- */
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function tokenize(text){
+  return (text||'').toLowerCase().match(/[a-z0-9]{3,}/g) || [];
+}
+function jaccard(a,b){
+  const sa = new Set(tokenize(a)), sb = new Set(tokenize(b));
+  if(!sa.size || !sb.size) return 0;
+  let inter = 0;
+  sa.forEach(w=>{ if(sb.has(w)) inter++; });
+  const union = new Set([...sa, ...sb]).size;
+  return union ? inter/union : 0;
+}
+function fmtDate(d){
+  if(!d) return 'Unknown date';
+  try{ return new Date(d+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}); }
+  catch(e){ return d; }
+}
+
+/* =========================================================
+   AI DEMO ANALYSIS (simulated — architecture ready for a
+   real vision/LLM API to be swapped in later)
+   ========================================================= */
+const CATEGORY_KEYWORDS = {
+  'Wallet':['wallet'], 'Phone':['phone','mobile','iphone','smartphone'],
+  'Earbuds':['earbuds','earphone','airpods','headphone','headphones'],
+  'ID card':['id card','identity card','id','student id'],
+  'Keys':['key','keys','keychain'], 'Bag':['bag','backpack','satchel','handbag'],
+  'Books':['book','books','notebook'], 'Calculator':['calculator']
+};
+const COLOR_KEYWORDS = ['black','white','red','blue','green','yellow','brown','grey','gray','pink','purple','orange','silver','gold','navy'];
+const MATERIAL_KEYWORDS = ['leather','plastic','metal','fabric','cotton','canvas','rubber','silicone','cloth','denim'];
+
+function analyzeItem(name, description, category){
+  const text = (name + ' ' + description).toLowerCase();
+  let detectedCategory = category || 'Other';
+  if(!category){
+    for(const [cat, kws] of Object.entries(CATEGORY_KEYWORDS)){
+      if(kws.some(k => text.includes(k))){ detectedCategory = cat; break; }
+    }
+  }
+  const color = COLOR_KEYWORDS.find(c => text.includes(c)) || 'Unknown';
+  const material = MATERIAL_KEYWORDS.find(m => text.includes(m)) || 'Not detected';
+  let confidence = 'Low';
+  const hits = [detectedCategory !== 'Other', color !== 'Unknown', material !== 'Not detected'].filter(Boolean).length;
+  if(hits >= 2) confidence = 'High';
+  else if(hits === 1) confidence = 'Medium';
+  return { category: detectedCategory, color, material, confidence };
+}
+
+/* =========================================================
+   MATCH SCORING (transparent, explainable algorithm)
+   Category 30 + Color 20 + Location 25 + Description 15 + Feature 10
+   ========================================================= */
+function calculateMatchScore(lost, found){
+  let score = 0;
+  const breakdown = [];
+
+  if(lost.category && lost.category === found.category && lost.category !== 'Other'){
+    score += 30; breakdown.push('Same category');
+  }
+  if(lost.color && lost.color === found.color && lost.color !== 'Unknown'){
+    score += 20; breakdown.push('Same color');
+  }
+  if(lost.locationType && found.locationType && lost.locationType === found.locationType){
+    score += 10; breakdown.push('Same location type');
+  }
+  const locationSim = jaccard(lost.location, found.location);
+  if(lost.location && found.location && lost.location.trim().toLowerCase() === found.location.trim().toLowerCase()){
+    score += 25; breakdown.push('Same location');
+  } else if(locationSim > 0.18){
+    score += 12; breakdown.push('Nearby / similar place name');
+  }
+  const descSim = jaccard(lost.description, found.description);
+  if(descSim > 0.12){
+    score += Math.round(descSim * 15);
+    breakdown.push('Similar description');
+  }
+  const featSim = jaccard(lost.feature, found.feature);
+  if(featSim > 0.15){
+    score += 10; breakdown.push('Similar distinctive feature');
+  }
+  return { score: Math.min(100, score), breakdown };
+}
+
+/* =========================================================
+   REPORT CREATION
+   ========================================================= */
+function addReport(report){
+  const list = getReports();
+  list.unshift(report);
+  saveReports(list);
+  return report;
+}
+
+function computeReportStatus(report, matches){
+  if(report.ownerConfirmedReceived) return 'Recovered';
+  if(report.handoverConfirmed) return 'Handover confirmed';
+  const mine = matches.filter(m => m.lostId === report.id || m.foundId === report.id);
+  if(!mine.length) return 'Searching';
+  const best = Math.max(...mine.map(m=>m.score));
+  if(best >= 70) return 'Matched';
+  if(best >= 40) return 'Potential match';
+  return 'Searching';
+}
+
+/* =========================================================
+   FIND MATCHES — scans all lost x found pairs
+   ========================================================= */
+function findMatches(){
+  const reports = getReports();
+  const lost = reports.filter(r => r.type === 'lost' && !r.recovered);
+  const found = reports.filter(r => r.type === 'found' && !r.recovered);
+  const matches = [];
+  lost.forEach(l=>{
+    found.forEach(f=>{
+      const { score, breakdown } = calculateMatchScore(l, f);
+      if(score >= 40){
+        matches.push({ id: l.id+'_'+f.id, lostId:l.id, foundId:f.id, score, breakdown });
+      }
+    });
+  });
+  matches.sort((a,b)=> b.score - a.score);
+
+  // fire notifications for strong new matches, once per pair
+  const notified = JSON.parse(localStorage.getItem('lf_notified_matches')||'[]');
+  matches.forEach(m=>{
+    if(m.score >= 70 && !notified.includes(m.id)){
+      const lostR = reports.find(r=>r.id===m.lostId);
+      showNotification('New potential match', `Your ${lostR ? lostR.name : 'item'} has a ${m.score}/100 match.`);
+      notified.push(m.id);
+    }
+  });
+  localStorage.setItem('lf_notified_matches', JSON.stringify(notified));
+  return matches;
+}
+
+/* =========================================================
+   REPORT FORM — photo upload + toggle + validation
+   ========================================================= */
+function setReportType(type){
+  state.reportType = type;
+  document.getElementById('toggleLost').classList.toggle('active-lost', type==='lost');
+  document.getElementById('toggleFound').classList.toggle('active-found', type==='found');
+
+  const isFound = type === 'found';
+  document.getElementById('secretTitle').textContent = isFound
+    ? 'Private verification detail (required)'
+    : 'Private detail only you would know';
+  document.getElementById('secretHint').innerHTML = isFound
+    ? 'Look at the item and note something that is <b>not</b> in your public description. The real owner will have to describe this to prove the item is theirs.'
+    : 'Describe a mark, damage or contents of your item. It is <b>never shown publicly</b> — it is only used to cross-check your ownership claim.';
+  document.getElementById('featureLabel').innerHTML = isFound
+    ? 'Hidden detail on the item <span class="opt">(never shown publicly)</span>'
+    : 'Distinctive detail <span class="opt">(never shown publicly)</span>';
+  document.getElementById('f-feature').placeholder = isFound
+    ? 'e.g. blue sticker inside the case lid'
+    : 'e.g. cracked left bud, name written inside';
+  document.getElementById('questionWrap').style.display = isFound ? 'block' : 'none';
+  document.getElementById('err-feature').classList.remove('show');
+}
+document.getElementById('toggleLost').addEventListener('click', ()=>setReportType('lost'));
+document.getElementById('toggleFound').addEventListener('click', ()=>setReportType('found'));
+
+document.getElementById('photoInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    state.photoDataUrl = reader.result;
+    document.getElementById('photoPreviewImg').src = reader.result;
+    document.getElementById('photoPreview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('reportForm').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const name = document.getElementById('f-name').value.trim();
+  const desc = document.getElementById('f-desc').value.trim();
+  const location = document.getElementById('f-location').value.trim();
+
+  const feature = document.getElementById('f-feature').value.trim();
+
+  let valid = true;
+  document.getElementById('err-name').classList.toggle('show', !name); if(!name) valid=false;
+  document.getElementById('err-desc').classList.toggle('show', !desc); if(!desc) valid=false;
+  document.getElementById('err-location').classList.toggle('show', !location); if(!location) valid=false;
+  // A found report MUST carry a private detail, otherwise nobody can ever be verified.
+  const needsSecret = state.reportType === 'found' && !feature;
+  document.getElementById('err-feature').classList.toggle('show', needsSecret); if(needsSecret) valid=false;
+  if(!valid){ showToast('Fill in the required fields.'); return; }
+
+  state.pendingReport = {
+    id: uid('LF'),
+    type: state.reportType,
+    name, description: desc, location,
+    locationType: document.getElementById('f-locationType').value || 'Other public place',
+    date: document.getElementById('f-date').value || new Date().toISOString().slice(0,10),
+    feature,
+    question: state.reportType === 'found' ? document.getElementById('f-question').value.trim() : '',
+    contact: document.getElementById('f-contact').value.trim(),
+    reporterContact: (getUser()||{}).contact || document.getElementById('f-contact').value.trim(),
+    reporterName: (getUser()||{}).name || '',
+    reporterRole: state.reportType,
+    category: document.getElementById('f-category').value,
+    photo: state.photoDataUrl,
+    createdAt: Date.now(),
+    recovered: false
+  };
+  runAnalysis(state.pendingReport);
+});
+
+/* ---------- AI analysis screen ---------- */
+function runAnalysis(report){
+  showPage('analysis');
+  document.getElementById('analysisLoading').style.display = 'block';
+  document.getElementById('analysisResult').style.display = 'none';
+  const fill = document.getElementById('progressFill');
+  fill.style.width = '0%';
+  requestAnimationFrame(()=>{ fill.style.width = '100%'; });
+
+  setTimeout(()=>{
+    const result = analyzeItem(report.name, report.description, report.category);
+    report.category = result.category;
+    report.color = result.color;
+    report.material = result.material;
+    report.confidence = result.confidence;
+
+    document.getElementById('an-category').textContent = result.category;
+    document.getElementById('an-color').textContent = result.color;
+    document.getElementById('an-material').textContent = result.material;
+    const confEl = document.getElementById('an-confidence');
+    confEl.textContent = result.confidence;
+    confEl.className = 'val ' + (result.confidence==='High'?'conf-high':result.confidence==='Medium'?'conf-medium':'conf-low');
+    document.getElementById('an-feature').textContent = report.feature || 'Not specified';
+    document.getElementById('an-location').textContent = (report.locationType ? report.locationType + ' • ' : '') + report.location;
+
+    document.getElementById('analysisLoading').style.display = 'none';
+    document.getElementById('analysisResult').style.display = 'block';
+  }, 1500);
+}
+
+document.getElementById('createReportBtn').addEventListener('click', ()=>{
+  const report = state.pendingReport;
+  addReport(report);
+  const matches = findMatches();
+
+  document.getElementById('created-id').textContent = report.id;
+  document.getElementById('created-item').textContent = report.name;
+  document.getElementById('created-type').textContent = report.type === 'lost' ? 'Lost' : 'Found';
+  document.getElementById('created-location').textContent = (report.locationType ? report.locationType + ' • ' : '') + report.location;
+  const statusText = computeReportStatus(report, matches);
+  const statusEl = document.getElementById('created-status');
+  statusEl.textContent = statusText === 'Searching' ? 'Searching for matches...' : statusText;
+  statusEl.className = 'status-pill ' + statusClass(statusText);
+
+  showNotification('Report created', `${report.name} was added as a ${report.type} report.`);
+
+  // reset form for next use
+  document.getElementById('reportForm').reset();
+  document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+  setReportType(state.reportType);
+  document.getElementById('photoPreview').style.display='none';
+  state.photoDataUrl = null;
+
+  showPage('created');
+});
+document.getElementById('viewMatchesBtn').addEventListener('click', ()=> showPage('matches'));
+
+function statusClass(status){
+  if(status==='Recovered') return 'status-recovered';
+  if(status==='Handover confirmed') return 'status-matched';
+  if(status==='Matched') return 'status-matched';
+  if(status==='Potential match') return 'status-potential';
+  return 'status-searching';
+}
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+document.getElementById('dashTabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.tab-btn');
+  if(!btn) return;
+  state.dashFilter = btn.dataset.filter;
+  document.querySelectorAll('#dashTabs .tab-btn').forEach(b=>b.classList.toggle('active', b===btn));
+  renderDashboard();
+});
+document.getElementById('dashSearch').addEventListener('input', renderDashboard);
+document.getElementById('dashCategory').addEventListener('change', renderDashboard);
+
+function getMyReports(){
+  const u=getUser();
+  if(!u) return [];
+  const reports=getReports();
+  const mine=reports.filter(r=>r.reporterContact && r.reporterContact===u.contact);
+  // In demo mode, also surface the active side of a matched recovery so judges can switch Owner/Finder.
+  if(mine.length) return mine;
+  const role=currentRole();
+  const matches=findMatches();
+  const ids=new Set(matches.map(m=>role==='owner'?m.lostId:m.foundId));
+  return reports.filter(r=>ids.has(r.id)).slice(0,5);
+}
+function getStatusInfo(report, matches){
+  if(report.ownerConfirmedReceived) return {label:'Recovered',cls:'success',idx:5,next:'Recovery complete — no action is required.'};
+  if(report.handoverConfirmed) return {label:'Handover pending confirmation',cls:'primary',idx:4,next:currentRole()==='owner'?'Confirm that you received the item.':'Waiting for the owner to confirm receipt.'};
+  const mine=matches.filter(m=>m.lostId===report.id||m.foundId===report.id).sort((a,b)=>b.score-a.score);
+  if(mine.length){
+    const verified=report.ownerVerified || report.verificationPassed;
+    if(verified) return {label:'Owner verified',cls:'primary',idx:3,next:'Open Secure Chat and arrange the handover.'};
+    if(report.claimPending) return {label:'Claim under finder review',cls:'',idx:2,next:currentRole()==='finder'?'Open the match and approve or reject the ownership claim.':'The finder is reviewing your ownership claim.'};
+    return {label:mine[0].score>=70?'AI match found':'Potential match',cls:'primary',idx:2,next:report.type==='lost'?'Review the match and verify ownership.':'Wait for the potential owner to complete verification.'};
+  }
+  if(report.type==='found') return {label:'Found — waiting for a match',cls:'',idx:1,next:'Keep the item safe while ReFind AI searches for a potential owner.'};
+  return {label:'Lost — searching for a match',cls:'',idx:1,next:'ReFind AI is checking available found reports for a possible match.'};
+}
+function renderMyStatus(reports,matches){
+  const card=document.getElementById('myStatusCard'); if(!card)return;
+  const mine=getMyReports();
+  if(!mine.length){
+    card.innerHTML=`<div class="my-status-top"><div><div class="my-status-kicker">My recovery status</div><div class="my-status-title">No personal reports yet</div><div class="my-status-meta">Create a Lost or Found report to track its journey here.</div></div><button class="btn btn-primary" data-page="report" data-type="lost">Create report</button></div>`;
+    card.querySelector('[data-page]').addEventListener('click',()=>{setReportType('lost');showPage('report');});
+    return;
+  }
+  const r=mine[0], info=getStatusInfo(r,matches);
+  const labels=['Reported','Found','AI matched','Verified','Handover','Recovered'];
+  const steps=labels.map((x,i)=>`<div class="status-node ${i<info.idx?'done':i===info.idx?'active':''}">${i<info.idx?'✓ ':i===info.idx?'● ':''}${x}</div>`).join('');
+  card.innerHTML=`<div class="my-status-top"><div><div class="my-status-kicker">My recovery status • ${r.type==='lost'?'Owner / Lost':'Finder / Found'}</div><div class="my-status-title">${esc(r.name)}</div><div class="my-status-meta">${esc(r.location||'Location not specified')} • Report ${esc(r.id)}</div></div><span class="status-current ${info.cls}">● ${info.label}</span></div><div class="status-timeline">${steps}</div><div class="status-next"><b>Next step</b>${info.next}</div>`;
+}
+
+function renderDashboard(){
+  const reports = getReports();
+  const matches = findMatches();
+  const lost = reports.filter(r=>r.type==='lost').length;
+  const found = reports.filter(r=>r.type==='found').length;
+  const recovered = reports.filter(r=>r.ownerConfirmedReceived).length;
+  document.getElementById('stat-lost').textContent = lost;
+  document.getElementById('stat-found').textContent = found;
+  document.getElementById('stat-matches').textContent = matches.length;
+  document.getElementById('stat-recovered').textContent = recovered;
+
+  document.querySelectorAll('#dashTabs .tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.filter===state.dashFilter));
+  renderMyStatus(reports,matches);
+  renderOverviewChart(lost, found, matches.length, recovered);
+  renderReportsOverTime(reports);
+  renderReports(reports, matches);
+}
+/* This was being called but never defined — the dashboard grid stayed empty
+   and threw a ReferenceError on every render. */
+function renderReports(reports, matches){
+  const grid = document.getElementById('dashGrid');
+  if(!grid) return;
+  const q = (document.getElementById('dashSearch').value || '').toLowerCase().trim();
+  const cat = document.getElementById('dashCategory').value;
+  const filter = state.dashFilter;
+
+  const byId = Object.fromEntries(reports.map(r=>[r.id,r]));
+  const bestMatch = {};
+  matches.forEach(m=>{
+    [m.lostId, m.foundId].forEach(id=>{
+      if(!bestMatch[id] || m.score > bestMatch[id].score) bestMatch[id] = m;
+    });
+  });
+
+  const list = reports.filter(r=>{
+    if(filter === 'lost' && r.type !== 'lost') return false;
+    if(filter === 'found' && r.type !== 'found') return false;
+    if(filter === 'recovered' && !r.ownerConfirmedReceived) return false;
+    if(cat && r.category !== cat) return false;
+    if(q && !(`${r.name} ${r.description} ${r.location}`.toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  if(!list.length){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="ico">📭</div><p>No reports here yet. Create a lost or found report to get started.</p></div>`;
+    return;
+  }
+
+  const icons = {'Wallet':'👛','Phone':'📱','Earbuds':'🎧','ID card':'🪪','Keys':'🔑','Bag':'🎒','Books':'📚','Calculator':'🧮'};
+  grid.innerHTML = list.map(r=>{
+    const status = computeReportStatus(r, matches);
+    const m = bestMatch[r.id];
+    const photo = r.photo
+      ? `<img src="${r.photo}" alt="${esc(r.name)}">`
+      : (icons[r.category] || '📦');
+    return `<div class="item-card">
+      <div class="item-photo">${photo}</div>
+      <div class="item-body">
+        <div class="item-top">
+          <h4>${esc(r.name)}</h4>
+          <span class="type-badge ${r.type==='lost'?'type-lost':'type-found'}">${r.type==='lost'?'Lost':'Found'}</span>
+        </div>
+        <div class="item-meta">
+          <span>📍 ${esc(r.location||'Unknown')}</span>
+          <span>📅 ${fmtDate(r.date)}</span>
+          <span>🔒 ${r.feature ? 'Private detail on record' : 'No private detail'}</span>
+        </div>
+        <div class="item-foot">
+          <span class="status-pill ${statusClass(status)}">${status}</span>
+          ${m ? `<button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" data-open-match="${m.id}">${m.score}% · Review</button>` : '<span class="match-pct">No match yet</span>'}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('[data-open-match]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const match = matches.find(x=>x.id === btn.getAttribute('data-open-match'));
+      if(match) openMatchReview(match, byId);
+    });
+  });
+}
+
+function renderOverviewChart(lost, found, matches, recovered){
+  const values=[lost,found,matches,recovered], labels=['Lost','Found','Matches','Recovered'];
+  const max=Math.max(1,...values), w=520,h=220,pad=34,base=184,chartH=130,barW=58,gap=46;
+  const bars=values.map((v,i)=>{const x=62+i*(barW+gap), bh=(v/max)*chartH, y=base-bh; return `<rect class="bar" x="${x}" y="${y}" width="${barW}" height="${bh}" fill="url(#barGrad)"/><text class="chart-value" x="${x+barW/2}" y="${y-8}" text-anchor="middle">${v}</text><text class="chart-label" x="${x+barW/2}" y="204" text-anchor="middle">${labels[i]}</text>`}).join('');
+  document.getElementById('overviewChart').innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Overview bar chart"><defs><linearGradient id="barGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#7C6CF6"/><stop offset="100%" stop-color="#14B8A6"/></linearGradient></defs><line class="chart-gridline" x1="34" y1="184" x2="500" y2="184"/>${bars}</svg>`;
+}
+function renderReportsOverTime(reports){
+  const days=[]; for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i); days.push(d.toISOString().slice(0,10));}
+  const lost=days.map(d=>reports.filter(r=>r.date===d&&r.type==='lost').length), found=days.map(d=>reports.filter(r=>r.date===d&&r.type==='found').length), rec=days.map(d=>reports.filter(r=>r.ownerConfirmedReceived&&r.recoveredDate&&new Date(r.recoveredDate).toISOString().slice(0,10)===d).length);
+  const all=[...lost,...found,...rec], max=Math.max(2,...all), w=520,h=220,padX=40,base=184,top=34,plotW=460,plotH=145;
+  const pts=(arr)=>arr.map((v,i)=>`${padX+i*(plotW/6)},${base-(v/max)*plotH}`).join(' ');
+  const area=(arr)=>`M ${padX} ${base} L ${arr.map((v,i)=>`${padX+i*(plotW/6)} ${base-(v/max)*plotH}`).join(' L ')} L ${padX+plotW} ${base} Z`;
+  const labels=days.map((d,i)=>`<text class="chart-label" x="${padX+i*(plotW/6)}" y="204" text-anchor="middle">${new Date(d+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short'})}</text>`).join('');
+  document.getElementById('reportsChart').innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Reports over time line chart"><defs><linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#7C6CF6" stop-opacity=".24"/><stop offset="100%" stop-color="#14B8A6" stop-opacity=".02"/></linearGradient></defs><line class="chart-gridline" x1="${padX}" y1="${base}" x2="${padX+plotW}" y2="${base}"/><line class="chart-gridline" x1="${padX}" y1="${base-plotH/2}" x2="${padX+plotW}" y2="${base-plotH/2}"/><path class="line-fill" d="${area(lost)}"/><polyline class="line-path" points="${pts(lost)}"/><polyline class="line-path" style="stroke:var(--accent)" points="${pts(found)}"/><polyline class="line-path" style="stroke:#F59E0B" points="${pts(rec)}"/>${labels}<g transform="translate(52,18)"><circle cx="0" cy="0" r="4" fill="var(--primary)"/><text class="chart-label" x="8" y="4">Lost</text><circle cx="54" cy="0" r="4" fill="var(--accent)"/><text class="chart-label" x="62" y="4">Found</text><circle cx="116" cy="0" r="4" fill="#F59E0B"/><text class="chart-label" x="124" y="4">Recovered</text></g></svg>`;
+}
+
+/* =========================================================
+   MATCHES PAGE
+   ========================================================= */
+function renderMatchesPage(){
+  const reports = getReports();
+  const byId = Object.fromEntries(reports.map(r=>[r.id,r]));
+  const matches = findMatches();
+  const list = document.getElementById('matchesList');
+
+  if(!matches.length){
+    list.innerHTML = `<div class="empty-state"><div class="ico">🔍</div><p>No potential matches found yet. Your report will remain active.</p></div>`;
+    return;
+  }
+
+  const top = matches[0];
+  const rest = matches.slice(1);
+  const l = byId[top.lostId], f = byId[top.foundId];
+
+  let html = `
+  <div class="match-hero">
+    <span class="tag">🎯 Potential match found</span>
+    <div class="score-big"><div class="n">${top.score}%</div><div class="l">Match score</div></div>
+    <div class="match-cols">
+      <div class="match-col"><div class="lbl">Lost item</div><h4>${esc(l.name)}</h4><p>📍 ${esc(l.location)}</p><p>📅 ${fmtDate(l.date)}</p></div>
+      <div class="match-col"><div class="lbl">Found item</div><h4>${esc(f.name)}</h4><p>📍 ${esc(f.location)}</p><p>📅 ${fmtDate(f.date)}</p></div>
+    </div>
+    <p style="font-weight:600;font-size:14px;margin-bottom:10px;">Match details</p>
+    <ul class="check-list">${top.breakdown.map(b=>`<li><span class="ck">✓</span> ${esc(b)}</li>`).join('') || '<li>General similarity</li>'}</ul>
+    <button class="btn btn-primary btn-block" data-review="${top.id}">Review match</button>
+  </div>`;
+
+  if(rest.length){
+    html += `<p style="font-weight:600;font-size:14px;margin:22px 0 10px;">Other potential matches</p>`;
+    html += rest.map(m=>{
+      const rl = byId[m.lostId], rf = byId[m.foundId];
+      return `<div class="plain-match-card">
+        <div class="info"><h4>${esc(rl.name)} → ${esc(rf.name)}</h4><p>${esc(rl.location)}</p></div>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <span class="score">${m.score}%</span>
+          <button class="btn btn-ghost" data-review="${m.id}">Review</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  list.innerHTML = html;
+  list.querySelectorAll('[data-review]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const match = matches.find(m=>m.id === btn.getAttribute('data-review'));
+      openMatchReview(match, byId);
+    });
+  });
+}
+
+/* =========================================================
+   MATCH REVIEW
+   ========================================================= */
+function openMatchReview(match, byId){
+  window.activeMatch = match;
+  const l = byId[match.lostId], f = byId[match.foundId];
+  state.currentMatch = { ...match, lost:l, found:f };
+
+  document.getElementById('rev-score').textContent = match.score + '/100';
+  document.getElementById('rev-strength').textContent = match.score >= 70 ? 'Strong match' : match.score >= 55 ? 'Good match' : 'Possible match';
+  document.getElementById('rev-lost-name').textContent = l.name;
+  document.getElementById('rev-lost-color').textContent = 'Color: ' + (l.color||'Unknown');
+  document.getElementById('rev-lost-material').textContent = 'Material: ' + (l.material||'Not detected');
+  document.getElementById('rev-lost-location').textContent = '📍 ' + l.location;
+  document.getElementById('rev-found-name').textContent = f.name;
+  document.getElementById('rev-found-color').textContent = 'Color: ' + (f.color||'Unknown');
+  document.getElementById('rev-found-material').textContent = 'Material: ' + (f.material||'Not detected');
+  document.getElementById('rev-found-location').textContent = '📍 ' + f.location;
+  document.getElementById('rev-reasons').innerHTML = match.breakdown.map(b=>`<li><span class="ck">✓</span> ${esc(b)}</li>`).join('') || '<li>General similarity</li>';
+
+  document.getElementById('verifyInput').value = '';
+  document.getElementById('verifyResult').className = 'verify-result';
+  document.getElementById('verifyResult').textContent = '';
+
+  renderReviewActions();
+  showPage('review');
+}
+
+/* Owner and finder see two different things on the same match. */
+function renderReviewActions(){
+  const m = state.currentMatch;
+  const fresh = getReports();
+  const lost = fresh.find(r=>r.id===m.lost.id) || m.lost;
+  const found = fresh.find(r=>r.id===m.found.id) || m.found;
+  const role = currentRole();
+  const ownerActions = document.getElementById('ownerActions');
+  const claimPanel = document.getElementById('finderClaimPanel');
+  const waitNote = document.getElementById('finderWaitNote');
+  const verified = lost.ownerVerified || lost.verificationPassed;
+
+  ownerActions.style.display = 'none';
+  claimPanel.style.display = 'none';
+  waitNote.style.display = 'none';
+
+  if(role === 'owner'){
+    if(verified){
+      waitNote.style.display = 'block';
+      waitNote.innerHTML = '✅ Ownership already verified for this match. <b>Open Secure Chat</b> to arrange the handover.';
+      return;
+    }
+    if(lost.claimPending){
+      waitNote.style.display = 'block';
+      waitNote.innerHTML = '⏳ Your ownership claim was sent to the finder. You will be notified once they approve it.';
+      return;
+    }
+    ownerActions.style.display = 'flex';
+    return;
+  }
+
+  // finder side
+  if(verified){
+    waitNote.style.display = 'block';
+    waitNote.innerHTML = '✅ The owner passed your private verification check. You can now arrange the handover in Secure Chat.';
+    return;
+  }
+  if(lost.claimPending){
+    claimPanel.style.display = 'block';
+    claimPanel.innerHTML = `
+      <div class="claim-panel">
+        <div class="lbl">⏳ Ownership claim awaiting your decision</div>
+        <p style="font-size:13px;color:#92400E;margin:6px 0 0;">A potential owner described the item like this:</p>
+        <div class="claim-answer">"${esc(lost.claimAnswer||'')}"</div>
+        <p style="font-size:12px;color:#92400E;margin-bottom:12px;">Your private detail on record: <b>${esc(found.feature||'none recorded')}</b>. Approve only if this genuinely describes the item in your hand.</p>
+        <div class="match-actions">
+          <button class="btn btn-primary" id="approveClaimBtn">Approve claim</button>
+          <button class="btn btn-danger-ghost" id="rejectClaimBtn">Reject</button>
+        </div>
+      </div>`;
+    document.getElementById('approveClaimBtn').addEventListener('click', ()=> decideClaim(true));
+    document.getElementById('rejectClaimBtn').addEventListener('click', ()=> decideClaim(false));
+    return;
+  }
+  waitNote.style.display = 'block';
+  waitNote.innerHTML = found.feature
+    ? '🔒 Waiting for the potential owner to describe your private detail. You will be notified when they do.'
+    : '⚠️ You did not record a private detail for this item, so ownership cannot be auto-checked. Any claim will come to you for manual approval.';
+}
+
+function decideClaim(approved){
+  const m = state.currentMatch;
+  const ids = new Set([m.lost.id, m.found.id]);
+  saveReports(getReports().map(r=> ids.has(r.id)
+    ? (approved
+        ? {...r, ownerVerified:true, verificationPassed:true, verifiedAt:Date.now(), claimPending:false, claimApprovedBy:'finder'}
+        : {...r, claimPending:false, claimAnswer:'', claimRejectedAt:Date.now()})
+    : r));
+  if(approved){
+    window.activeRecoveryId = m.lost.id;
+    addNotification('Claim approved by finder','The finder manually approved the ownership claim. You can now arrange the handover.','owner');
+    showToast('Claim approved — ownership verified.');
+  }else{
+    addNotification('Claim rejected','The finder rejected the ownership claim. The item stays in the network.','owner');
+    showToast('Claim rejected.');
+  }
+  renderReviewActions();
+  renderDashboard();
+}
+
+document.getElementById('notMyItemBtn').addEventListener('click', ()=>{
+  showToast('Match dismissed. It will stay in the list for the other party.');
+  showPage('matches');
+});
+
+/* =========================================================
+   OWNERSHIP VERIFICATION
+   ---------------------------------------------------------
+   The ONLY valid source of truth is the detail the FINDER
+   recorded privately while holding the item. The owner never
+   saw it, so describing it correctly is real evidence.
+   Checking the owner against their own lost report would be
+   circular, so that is used only as a supporting signal.
+   ========================================================= */
+const STOPWORDS = new Set(['the','and','with','has','have','had','was','were','for','from','that','this','there','then','its','it\'s','mine','my','our','your','some','any','very','just','also','are','but','not','one','two','side','item','thing','things','stuff','kind','sort','like','near','inside','outside','about','into','onto','over','under','made','look','looks','looking','small','big']);
+
+function sigTokens(text){
+  return [...new Set(tokenize(text))].filter(w => !STOPWORDS.has(w));
+}
+function editDistance(a,b){
+  const m=a.length, n=b.length;
+  if(Math.abs(m-n) > 2) return 3;
+  const dp = Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++){
+    for(let j=1;j<=n;j++){
+      dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1] : 1+Math.min(dp[i-1][j-1],dp[i-1][j],dp[i][j-1]);
+    }
+  }
+  return dp[m][n];
+}
+function tokenMatches(secretWord, answerWords){
+  if(answerWords.includes(secretWord)) return true;
+  // tolerate a typo or a plural on longer words
+  return answerWords.some(w => {
+    if(Math.abs(w.length - secretWord.length) > 2) return false;
+    const limit = secretWord.length >= 6 ? 2 : secretWord.length >= 4 ? 1 : 0;
+    return limit > 0 && editDistance(w, secretWord) <= limit;
+  });
+}
+/* How much of the secret did the answer actually reproduce? 0..1 */
+function secretOverlap(secret, answer){
+  const secretWords = sigTokens(secret);
+  if(!secretWords.length) return 0;
+  const answerWords = [...new Set(tokenize(answer))];
+  if(!answerWords.length) return 0;
+  const hits = secretWords.filter(w => tokenMatches(w, answerWords)).length;
+  return hits / secretWords.length;
+}
+/* Words that are already public cannot count as proof of ownership. */
+function publicWords(match){
+  const l = match.lost, f = match.found;
+  return new Set(sigTokens([l.name,l.description,l.color,l.material,l.category,f.name,f.description,f.color,f.material,f.category].join(' ')));
+}
+
+const VERIFY_PASS = 0.5;   // must reproduce at least half of the finder's private detail
+
+function verifyOwnership(answer, match){
+  const a = (answer||'').trim();
+  const finderSecret = (match.found.feature||'').trim();
+  const ownerDetail  = (match.lost.feature||'').trim();
+
+  if(!a) return { outcome:'empty' };
+
+  // No private detail from the finder -> nothing can be auto-checked.
+  if(!finderSecret){
+    return { outcome:'manual', reason:'no-finder-detail', claim:a };
+  }
+
+  const overlap = secretOverlap(finderSecret, a);
+  const consistency = ownerDetail ? secretOverlap(ownerDetail, a) : null;
+
+  if(overlap >= VERIFY_PASS){
+    // Guard: the answer only repeats words that are already on the public listing.
+    const pub = publicWords(match);
+    const matchedWords = sigTokens(finderSecret).filter(w => tokenMatches(w, [...new Set(tokenize(a))]));
+    const allPublic = matchedWords.length > 0 && matchedWords.every(w => pub.has(w));
+    if(allPublic){
+      return { outcome:'manual', reason:'public-only', claim:a, overlap, consistency };
+    }
+    return { outcome:'pass', overlap, consistency };
+  }
+  return { outcome:'fail', overlap, consistency };
+}
+
+/* ---------- verify screen ---------- */
+function autoQuestion(found, lost){
+  if(found.question) return found.question;
+  const item = (lost.name||'item').toLowerCase();
+  const byCat = {
+    'Earbuds':`The finder noted a private detail on this ${item}. Describe a mark, damage or anything inside the case that only the owner would know.`,
+    'Phone':`The finder noted a private detail on this ${item}. Describe the case, lock screen or any damage only the owner would know.`,
+    'Wallet':`The finder noted a private detail inside this ${item}. Describe what is inside it that only the owner would know.`,
+    'Bag':`The finder noted a private detail on this ${item}. Describe its contents or any marking only the owner would know.`,
+    'Keys':`The finder noted a private detail on this keyring. Describe the keychain, tags or number of keys.`
+  };
+  return byCat[found.category] || `The finder recorded a private detail about this ${item}. Describe something about it that is not in the public listing.`;
+}
+
+function openVerifyPage(){
+  const { lost, found } = state.currentMatch;
+  state.verifyAttempts = 0;
+  document.getElementById('verify-question').textContent = autoQuestion(found, lost);
+  document.getElementById('verifyInput').value = '';
+  document.getElementById('verifyBtn').disabled = false;
+  const src = document.getElementById('verifySource');
+  if(found.feature){
+    src.className = 'verify-source';
+    src.textContent = '🔎 Checked against a private detail the finder recorded. It was never published, so only the real owner can describe it.';
+  }else{
+    src.className = 'verify-source weak';
+    src.textContent = '⚠️ The finder did not record a private detail, so this cannot be auto-checked. Your answer will be sent to the finder for manual approval.';
+  }
+  renderAttempts();
+  const r = document.getElementById('verifyResult');
+  r.className = 'verify-result'; r.textContent = '';
+  showPage('verify');
+}
+function renderAttempts(){
+  const left = 3 - (state.verifyAttempts||0);
+  document.getElementById('verifyAttempts').textContent = left > 0
+    ? `Attempt ${(state.verifyAttempts||0)+1} of 3`
+    : 'No attempts left';
+}
+
+document.getElementById('startVerifyBtn').addEventListener('click', openVerifyPage);
+document.getElementById('verifyBackBtn').addEventListener('click', ()=> showPage('review'));
+
+function sendClaimToFinder(claim, note){
+  const m = state.currentMatch;
+  saveReports(getReports().map(r=>{
+    if(r.id===m.lost.id || r.id===m.found.id){
+      return {...r, claimPending:true, claimAnswer:claim, claimAt:Date.now(), ownerVerified:false, verificationPassed:false};
+    }
+    return r;
+  }));
+  addNotification('Ownership claim needs your review', 'Someone described your found item. Open the match to approve or reject the claim.', 'finder');
+  const r = document.getElementById('verifyResult');
+  r.className = 'verify-result show warn';
+  r.textContent = '⏳ ' + note + ' Your answer has been sent to the finder for manual approval.';
+  document.getElementById('verifyBtn').disabled = true;
+}
+
+document.getElementById('verifyBtn').addEventListener('click', ()=>{
+  const answer = document.getElementById('verifyInput').value.trim();
+  const resultEl = document.getElementById('verifyResult');
+  const res = verifyOwnership(answer, state.currentMatch);
+
+  if(res.outcome === 'empty'){
+    resultEl.className = 'verify-result show fail';
+    resultEl.textContent = 'Enter an answer first.';
+    return;
+  }
+
+  if(res.outcome === 'manual'){
+    sendClaimToFinder(res.claim, res.reason === 'no-finder-detail'
+      ? 'This item has no private detail on record, so it cannot be checked automatically.'
+      : 'Your answer only repeats details that are already public, so it cannot count as proof on its own.');
+    return;
+  }
+
+  if(res.outcome === 'pass'){
+    const ids = new Set([state.currentMatch.lost.id, state.currentMatch.found.id]);
+    saveReports(getReports().map(r=> ids.has(r.id)
+      ? {...r, ownerVerified:true, verificationPassed:true, verifiedAt:Date.now(), claimPending:false}
+      : r));
+    window.activeRecoveryId = state.currentMatch.lost.id;
+    resultEl.className = 'verify-result show ok';
+    resultEl.textContent = `✅ Ownership verified — your answer matched the finder's private detail${res.consistency !== null && res.consistency >= 0.5 ? ' and your own lost report' : ''}.`;
+    document.getElementById('verifyBtn').disabled = true;
+    addNotification('Ownership verified','The potential owner described the private detail correctly.','both');
+    setTimeout(()=> openContactPage(), 900);
+    return;
+  }
+
+  // fail
+  state.verifyAttempts = (state.verifyAttempts||0) + 1;
+  renderAttempts();
+  if(state.verifyAttempts >= 3){
+    sendClaimToFinder(answer, 'Three attempts did not match the private detail.');
+    return;
+  }
+  resultEl.className = 'verify-result show fail';
+  resultEl.textContent = `❌ That doesn't match the private detail on record. ${3 - state.verifyAttempts} attempt${3-state.verifyAttempts===1?'':'s'} left.`;
+});
+
+/* =========================================================
+   CONTACT FINDER
+   ========================================================= */
+function openContactPage(){
+  // window.activeMatch is a raw match record with lostId/foundId — it has no .lost,
+  // so the old line threw a TypeError right after a successful verification.
+  const m = state.currentMatch;
+  if(m) window.activeRecoveryId = m.lost.id;
+  document.getElementById('contact-item').textContent = m.lost.name;
+  document.getElementById('contact-location').textContent = m.found.location;
+  document.getElementById('contact-message').textContent =
+    `Hi, I believe this is my lost ${m.lost.name.toLowerCase()}. I have verified the ownership details.`;
+  state.msgSent = false;
+  renderContactActions();
+  showPage('contact');
+  // This used to say "Verification required" *after* verification had already passed.
+  showNotification('Ownership verified', 'You can now contact the finder through the secure relay.', 'both');
+}
+
+function renderContactActions(){
+  const m = state.currentMatch;
+  if(!m) return;
+  const r = getReports().find(x=>x.id===m.lost.id) || {};
+  const role = currentRole();
+  const show = (id,on)=>{ const el=document.getElementById(id); if(el) el.style.display = on ? 'block' : 'none'; };
+
+  const done = !!r.ownerConfirmedReceived;
+  const handed = !!r.handoverConfirmed;
+
+  show('sendMsgBtn', !state.msgSent && !handed && !done);
+  show('afterSend', (state.msgSent || false) && !handed && !done);
+  show('afterRecover', handed && !done);
+  show('afterOwnerConfirm', done);
+
+  // Only the correct side gets an enabled action button.
+  const hand = document.getElementById('markRecoveredBtn');
+  if(hand){
+    hand.disabled = role !== 'finder';
+    hand.textContent = role === 'finder' ? 'Finder confirms handover' : 'Waiting for the finder to confirm handover';
+  }
+  const recv = document.getElementById('confirmReceivedBtn');
+  if(recv){
+    recv.disabled = role !== 'owner';
+    recv.textContent = role === 'owner' ? 'Owner confirms received' : 'Waiting for the owner to confirm receipt';
+  }
+}
+
+document.getElementById('sendMsgBtn').addEventListener('click', ()=>{
+  state.msgSent = true;
+  addChatMessage(currentRole(), document.getElementById('contact-message').textContent);
+  renderContactActions();
+  showToast('Message sent through the secure relay.');
+});
+
+document.getElementById('markRecoveredBtn').addEventListener('click', markRecovered);
+document.getElementById('confirmReceivedBtn').addEventListener('click', confirmOwnerReceived);
+
+/* A recovery must be confirmed by two different people. Without this,
+   one person could press both buttons and "recover" the item alone. */
+function requireRole(role){
+  if(currentRole() === role) return true;
+  showToast(role === 'finder'
+    ? 'Only the finder can confirm handover. Switch the demo identity to Finder.'
+    : 'Only the owner can confirm receipt. Switch the demo identity to Owner.');
+  return false;
+}
+
+function markRecovered(){
+  if(!requireRole('finder')) return;
+  const m = state.currentMatch;
+  const now = Date.now();
+  const reports = getReports().map(r=>{
+    if(r.id === m.lost.id || r.id === m.found.id){
+      return { ...r, handoverConfirmed:true, handoverAt:now };
+    }
+    return r;
+  });
+  saveReports(reports);
+  renderContactActions();
+  showNotification('Handover confirmed', 'The finder marked the item as handed over. Owner confirmation is still required.', 'both');
+}
+function confirmOwnerReceived(){
+  if(!requireRole('owner')) return;
+  const m = state.currentMatch;
+  const fresh = getReports().find(r=>r.id===m.lost.id);
+  if(!fresh?.handoverConfirmed){ showToast('The finder must confirm handover first.'); return; }
+  const now = Date.now();
+  const reports = getReports().map(r=>{
+    if(r.id === m.lost.id || r.id === m.found.id){
+      return { ...r, recovered:true, ownerConfirmedReceived:true, recoveredAt:now, recoveredDate:new Date(now).toISOString() };
+    }
+    return r;
+  });
+  saveReports(reports);
+  renderContactActions();
+  showNotification('Recovery complete', 'Owner confirmed receipt. This case is now closed.', 'both');
+}
+
+/* =========================================================
+   START CLEAN — no reports are pre-loaded
+   ========================================================= */
+function clearLegacyDemoData(){
+  const reports=getReports();
+  const demoContacts=new Set(['aarav@example.com','finder1@example.com','finder2@example.com','meera@example.com','rohan@example.com','sara@example.com','finder3@example.com','you@example.com','finder@example.com']);
+  const cleaned=reports.filter(r=>!demoContacts.has(r.contact) && !(r.demo===true));
+  if(cleaned.length!==reports.length) saveReports(cleaned);
+  localStorage.removeItem(SEED_KEY);
+}
+
+document.getElementById('authEmailBtn').addEventListener('click',()=>{document.getElementById('authEmailBtn').classList.add('active');document.getElementById('authPhoneBtn').classList.remove('active');document.getElementById('authContactLabel').textContent='Email address';document.getElementById('authContact').placeholder='you@example.com';});
+document.getElementById('authPhoneBtn').addEventListener('click',()=>{document.getElementById('authPhoneBtn').classList.add('active');document.getElementById('authEmailBtn').classList.remove('active');document.getElementById('authContactLabel').textContent='Phone number';document.getElementById('authContact').placeholder='+91 98765 43210';});
+document.getElementById('authContinue').addEventListener('click',()=>{const contact=document.getElementById('authContact').value.trim();const name=document.getElementById('authName').value.trim();if(!contact||!name){showToast('Enter your name and email/phone to continue.');return;}const u={name,contact,method:document.getElementById('authEmailBtn').classList.contains('active')?'email':'phone',createdAt:Date.now()};saveUser(u);ensureAuth();showToast('Welcome to ReFind AI 👋');});
+function applyRole(role){
+  localStorage.setItem(DEMO_ROLE_KEY, role);
+  document.getElementById('demoRole').value = role;
+  document.getElementById('navRole').value = role;
+  renderNotifDot(); renderNotifPanel(); renderChat(); updateRecoveryStatus();
+  if(state.currentMatch) renderReviewActions();
+  if(document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
+  if(document.getElementById('page-contact').classList.contains('active')) renderContactActions();
+  showToast(role==='owner' ? 'Viewing as the owner.' : 'Viewing as the finder.');
+}
+document.getElementById('demoRole').addEventListener('change',e=>applyRole(e.target.value));
+document.getElementById('navRole').addEventListener('change',e=>applyRole(e.target.value));
+document.getElementById('chatSend').addEventListener('click',()=>{const i=document.getElementById('chatInput');const t=i.value.trim();if(!t)return;addChatMessage(currentRole(),t);addNotification('New secure message',`${currentRole()==='owner'?'Owner':'Finder'} sent a message in a recovery chat.`,'both');i.value='';});
+document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('chatSend').click();});
+function updateRecoveryPair(patch){
+  const reports=getReports();
+  const id=window.activeRecoveryId;
+  const active=state.currentMatch;
+  const ids=new Set(active?[active.lost.id,active.found.id]:[id]);
+  if(!ids.size)return false;
+  saveReports(reports.map(r=>ids.has(r.id)?{...r,...patch}:r));
+  return true;
+}
+document.getElementById('chatHandoverBtn').addEventListener('click',()=>{if(!requireRole('finder'))return;if(!updateRecoveryPair({handoverConfirmed:true,handoverAt:Date.now()})){showToast('Open a verified recovery first.');return;}addNotification('Finder confirmed handover','The finder says the item has been handed over. Please confirm receipt.','owner');updateRecoveryStatus();renderDashboard();showToast('Handover marked. Owner confirmation is next.');});
+document.getElementById('chatReceivedBtn').addEventListener('click',()=>{if(!requireRole('owner'))return;const reports=getReports();const id=window.activeRecoveryId;const target=reports.find(r=>r.id===id);if(!target?.handoverConfirmed){showToast('Finder must confirm handover first.');return;}updateRecoveryPair({ownerConfirmedReceived:true,recovered:true,receivedAt:Date.now(),recoveredAt:Date.now(),recoveredDate:new Date().toISOString()});addNotification('Recovery complete','Owner confirmed receipt. The item is now recovered.','both');updateRecoveryStatus();renderDashboard();showToast('🎉 Recovery complete!');});
+
+/* ---------- privacy note link ---------- */
+document.getElementById('privacyLink').addEventListener('click', ()=>{
+  showToast('Personal information is never shown until ownership is verified.');
+});
+
+/* ---------- init ---------- */
+clearLegacyDemoData();
+if(!localStorage.getItem(DEMO_ROLE_KEY)) localStorage.setItem(DEMO_ROLE_KEY,'owner');
+document.getElementById('demoRole').value = currentRole();
+document.getElementById('navRole').value = currentRole();
+document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+setReportType('lost');
+renderNotifDot();
+ensureAuth();
+showPage('home');
+</script>
+</body>
+</html>
